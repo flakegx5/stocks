@@ -1,0 +1,23 @@
+# 生成的输出文件（可通过 build_html.py 重新生成）
+hk_stocks.html
+
+# 旧版数据文件
+hk_stocks_data.csv
+hk_stocks_data.json
+
+# 截图文件
+*.png
+
+# 无关文件
+birthday.html
+
+# Claude Code 配置（本地会话记录）
+.claude/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.pyo
+
+# macOS
+.DS_Store

@@ -16,6 +16,10 @@ git push
 
 ---
 
+## 项目路径
+
+本项目位于 `/Users/flakeliu/claude/stocks/`（本地），或其他设备 clone 后的根目录。
+
 ## 核心文件
 
 - **`build_html.py`** — 唯一需要编辑的核心文件（约1200行）

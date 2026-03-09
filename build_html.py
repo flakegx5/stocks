@@ -94,6 +94,7 @@ PERIOD_METRICS = [
     ('负债合计',                         '总负债'),
     ('短期借款',                         '短期借款'),
     ('长期借款',                         '长期借款'),
+    ('权益合计',                         '权益合计'),
     ('净资产收益率roe',                   'ROE'),
     ('投入资本回报率',                    'ROIC'),
     ('经营活动产生的现金流量净额',        '经营现金流'),
@@ -115,31 +116,32 @@ COMPUTED_COL_DEFS = [
     '最新总负债',     # idx 15: 亿
     '最新短期借款',   # idx 16: 亿
     '最新长期借款',   # idx 17: 亿
-    'TTMROE',         # idx 18: %
-    'TTMROIC',        # idx 19: %
-    'TTM经营现金流',  # idx 20: 亿
-    'TTM投资现金流',  # idx 21: 亿
-    'TTM资本支出',    # idx 22: 亿
-    'TTM融资现金流',  # idx 23: 亿
-    'TTM股份回购',    # idx 24: 亿
-    'TTM支付股息',    # idx 25: 亿
-    '预期25年度分红', # idx 26: 亿
-    '预期25股东回报', # idx 27: 亿
-    '净现金',         # idx 28: 亿（金融股为空）
-    '有息负债',       # idx 29: 亿（金融股为空）
-    'TTMFCF',         # idx 30: 亿（金融股为空）
-    '股东收益率',     # idx 31: %（金融股为空）
-    '股东回报分配率', # idx 32: %
-    '低估排序分',     # idx 33: 整数排名（越小越好）
-    '成长排序分',     # idx 34: 整数排名（越小越好）
-    '质量排序分',     # idx 35: 整数排名（越小越好）
-    '股东回报排序分', # idx 36: 整数排名（越小越好）
-    '综合分数',       # idx 37: 加权综合（越小越好）
+    '最新权益合计',   # idx 18: 亿
+    'TTMROE',         # idx 19: %
+    'TTMROIC',        # idx 20: %
+    'TTM经营现金流',  # idx 21: 亿
+    'TTM投资现金流',  # idx 22: 亿
+    'TTM资本支出',    # idx 23: 亿
+    'TTM融资现金流',  # idx 24: 亿
+    'TTM股份回购',    # idx 25: 亿
+    'TTM支付股息',    # idx 26: 亿
+    '预期25年度分红', # idx 27: 亿
+    '预期25股东回报', # idx 28: 亿
+    '净现金',         # idx 29: 亿（金融股为空）
+    '有息负债',       # idx 30: 亿（金融股为空）
+    'TTMFCF',         # idx 31: 亿（金融股为空）
+    '股东收益率',     # idx 32: %（金融股为空）
+    '股东回报分配率', # idx 33: %
+    '低估排序分',     # idx 34: 整数排名（越小越好）
+    '成长排序分',     # idx 35: 整数排名（越小越好）
+    '质量排序分',     # idx 36: 整数排名（越小越好）
+    '股东回报排序分', # idx 37: 整数排名（越小越好）
+    '综合分数',       # idx 38: 加权综合（越小越好）
 ]
 
 # Period metrics hidden by default (replaced by computed "最新" cols)
 METRICS_HIDE_DEFAULT = {
-    '归母净利润', '净利润同比', '总现金', '流动资产', '总负债', '短期借款', '长期借款',
+    '归母净利润', '净利润同比', '总现金', '流动资产', '总负债', '短期借款', '长期借款', '权益合计',
     'ROE', 'ROIC',
     '经营现金流', '投资现金流', '资本支出', '融资现金流', '股份回购', '支付股息',
     '年度分红',
@@ -148,7 +150,7 @@ METRICS_HIDE_DEFAULT = {
 # Computed columns hidden by default
 COMPUTED_HIDE_DEFAULT = {
     'TTM股份回购', 'TTM支付股息', '预期25年度分红',
-    '最新总现金', '最新流动资产', '最新总负债', '最新短期借款', '最新长期借款',
+    '最新总现金', '最新流动资产', '最新总负债', '最新短期借款', '最新长期借款', '最新权益合计',
 }
 
 # Build full column list
@@ -494,21 +496,22 @@ def compute_phase1(obj):
             _fmt(gv(LB)),                         # 15: 最新总负债
             _fmt(gv(SD)),                         # 16: 最新短期借款
             _fmt(gv(LD)),                         # 17: 最新长期借款
-            _fmt(v_ttmroe),                       # 18: TTMROE
-            _fmt(v_ttmroic),                      # 19: TTMROIC
-            _fmt(v_ocf),                          # 20: TTM经营现金流
-            _fmt(v_icf),                          # 21: TTM投资现金流 (可正可负)
-            _fmt(v_cap),                          # 22: TTM资本支出 (取反，>0则空)
-            _fmt(ttm_yi(FCF_CF)),                 # 23: TTM融资现金流
-            _fmt(neg_only(ttm_yi(BUY))),          # 24: TTM股份回购 (>0则空)
-            _fmt(neg_only(ttm_yi(DIV))),          # 25: TTM支付股息 (>0则空)
-            _fmt(v_exp_div),                      # 26: 预期25年度分红
-            _fmt(v_exp_return),                   # 27: 预期25股东回报
-            _fmt(v_net_cash),                     # 28: 净现金
-            _fmt(v_interest_debt),                # 29: 有息负债
-            _fmt(v_ttmfcf),                       # 30: TTMFCF
-            _fmt(v_shareholder_yield),            # 31: 股东收益率 (%)
-            _fmt(v_return_ratio),                 # 32: 股东回报分配率 (%)
+            _fmt(_net_assets),                    # 18: 最新权益合计
+            _fmt(v_ttmroe),                       # 19: TTMROE
+            _fmt(v_ttmroic),                      # 20: TTMROIC
+            _fmt(v_ocf),                          # 21: TTM经营现金流
+            _fmt(v_icf),                          # 22: TTM投资现金流 (可正可负)
+            _fmt(v_cap),                          # 23: TTM资本支出 (取反，>0则空)
+            _fmt(ttm_yi(FCF_CF)),                 # 24: TTM融资现金流
+            _fmt(neg_only(ttm_yi(BUY))),          # 25: TTM股份回购 (>0则空)
+            _fmt(neg_only(ttm_yi(DIV))),          # 26: TTM支付股息 (>0则空)
+            _fmt(v_exp_div),                      # 27: 预期25年度分红
+            _fmt(v_exp_return),                   # 28: 预期25股东回报
+            _fmt(v_net_cash),                     # 29: 净现金
+            _fmt(v_interest_debt),                # 30: 有息负债
+            _fmt(v_ttmfcf),                       # 31: TTMFCF
+            _fmt(v_shareholder_yield),            # 32: 股东收益率 (%)
+            _fmt(v_return_ratio),                 # 33: 股东回报分配率 (%)
         ],
         'is_jinrong': is_jrong,
         'is_other':   is_other,
@@ -825,6 +828,7 @@ th[data-group="流动资产"]   {{ background: #2d2035; }}
 th[data-group="总负债"]     {{ background: #28203a; }}
 th[data-group="短期借款"]   {{ background: #221f3a; }}
 th[data-group="长期借款"]   {{ background: #1c2038; }}
+th[data-group="权益合计"]   {{ background: #1e2a38; }}
 th[data-group="ROE"]        {{ background: #2a1e20; }}
 th[data-group="ROIC"]       {{ background: #282020; }}
 th[data-group="经营现金流"] {{ background: #261e22; }}
@@ -964,10 +968,10 @@ const TTMROIC_IDX  = {TTMROIC_IDX_PY};  // computed TTMROIC col
 const PCT_METRICS = new Set(['净利润同比', 'ROE', 'ROIC']);
 
 // Computed 亿 cols: TTM净利(11), 现金(13-17), 现金流(20-27), 净现金/有息负债/FCF(28-30)
-const COMPUTED_YI_COLS = new Set([11,13,14,15,16,17,20,21,22,23,24,25,26,27,28,29,30]);
+const COMPUTED_YI_COLS = new Set([11,13,14,15,16,17,18,21,22,23,24,25,26,27,28,29,30,31]);
 const COMPUTED_COL_NAMES = [
   '最新财报季','TTM归母净利润','TTM净利同比',
-  '最新总现金','最新流动资产','最新总负债','最新短期借款','最新长期借款',
+  '最新总现金','最新流动资产','最新总负债','最新短期借款','最新长期借款','最新权益合计',
   'TTMROE','TTMROIC',
   'TTM经营现金流','TTM投资现金流','TTM资本支出','TTM融资现金流','TTM股份回购','TTM支付股息',
   '预期25年度分红','预期25股东回报',
@@ -979,22 +983,23 @@ const FILTER_COLS = [
   {{idx:12, name:'TTM净利同比',    unit:'%',  isYi:false}},
   {{idx:TTMROE_IDX,  name:'TTMROE',  unit:'%', isYi:false}},
   {{idx:TTMROIC_IDX, name:'TTMROIC', unit:'%', isYi:false}},
-  {{idx:20, name:'TTM经营现金流',  unit:'亿', isYi:true}},
-  {{idx:21, name:'TTM投资现金流',  unit:'亿', isYi:true}},
-  {{idx:22, name:'TTM资本支出',    unit:'亿', isYi:true}},
-  {{idx:23, name:'TTM融资现金流',  unit:'亿', isYi:true}},
-  {{idx:26, name:'预期25年度分红', unit:'亿', isYi:true}},
-  {{idx:27, name:'预期25股东回报', unit:'亿', isYi:true}},
-  {{idx:28, name:'净现金',         unit:'亿', isYi:true}},
-  {{idx:29, name:'有息负债',       unit:'亿', isYi:true}},
-  {{idx:30, name:'TTMFCF',        unit:'亿', isYi:true}},
-  {{idx:31, name:'股东收益率',     unit:'%',  isYi:false}},
-  {{idx:32, name:'股东回报分配率', unit:'%',  isYi:false}},
-  {{idx:33, name:'低估排序分',     unit:'',   isYi:false}},
-  {{idx:34, name:'成长排序分',     unit:'',   isYi:false}},
-  {{idx:35, name:'质量排序分',     unit:'',   isYi:false}},
-  {{idx:36, name:'股东回报排序分', unit:'',   isYi:false}},
-  {{idx:37, name:'综合分数',       unit:'',   isYi:false}},
+  {{idx:18, name:'最新权益合计',   unit:'亿', isYi:true}},
+  {{idx:21, name:'TTM经营现金流',  unit:'亿', isYi:true}},
+  {{idx:22, name:'TTM投资现金流',  unit:'亿', isYi:true}},
+  {{idx:23, name:'TTM资本支出',    unit:'亿', isYi:true}},
+  {{idx:24, name:'TTM融资现金流',  unit:'亿', isYi:true}},
+  {{idx:27, name:'预期25年度分红', unit:'亿', isYi:true}},
+  {{idx:28, name:'预期25股东回报', unit:'亿', isYi:true}},
+  {{idx:29, name:'净现金',         unit:'亿', isYi:true}},
+  {{idx:30, name:'有息负债',       unit:'亿', isYi:true}},
+  {{idx:31, name:'TTMFCF',        unit:'亿', isYi:true}},
+  {{idx:32, name:'股东收益率',     unit:'%',  isYi:false}},
+  {{idx:33, name:'股东回报分配率', unit:'%',  isYi:false}},
+  {{idx:34, name:'低估排序分',     unit:'',   isYi:false}},
+  {{idx:35, name:'成长排序分',     unit:'',   isYi:false}},
+  {{idx:36, name:'质量排序分',     unit:'',   isYi:false}},
+  {{idx:37, name:'股东回报排序分', unit:'',   isYi:false}},
+  {{idx:38, name:'综合分数',       unit:'',   isYi:false}},
 ];
 
 // ---- Utility ----

@@ -601,9 +601,9 @@ cols_meta_js = json.dumps(cols_meta, ensure_ascii=False, separators=(',', ':'))
 periods_js = json.dumps([label for _, label in PERIOD_DATES], ensure_ascii=False)
 metrics_js = json.dumps([disp for _, disp in PERIOD_METRICS], ensure_ascii=False)
 
-# Period cols start at idx 18 (10 fixed + 8 computed)
+# Period cols start after fixed(10) + computed(28) = idx 38
 # metric_i * 11 + period_j; 2024年报 = period 3
-PERIOD_START = 10 + len(COMPUTED_COL_DEFS)   # = 20 (10 fixed + 10 computed)
+PERIOD_START = 10 + len(COMPUTED_COL_DEFS)   # = 38 (10 fixed + 28 computed)
 ROE_2024_IDX    = PERIOD_START + 7 * 11 + 3  # = 100
 PROFIT_2024_IDX = PERIOD_START + 0 * 11 + 3  # = 23
 CF_2024_IDX     = PERIOD_START + 9 * 11 + 3  # = 122

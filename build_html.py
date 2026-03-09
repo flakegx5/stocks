@@ -7,19 +7,44 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(BASE_DIR, 'hk_stocks_data_new.json'), encoding='utf-8') as f:
     raw = json.load(f)
 
+# ---- 易变市场字段 key（iwencai 原始 key，在此集中定义，避免多处硬编码日期）----
+# 当重新从 iwencai 抓数据后，若日期 suffix 发生变化，只需在此处更新。
+# update_market.py 用 AKShare 覆盖这些字段，compute_phase1 和 FIXED_COLS 均引用此处。
+MKT_KEY_PRICE  = '港股@最新价'
+MKT_KEY_CHG    = '港股@最新涨跌幅'
+MKT_KEY_MKTCAP = '港股@总市值[20260309]'
+MKT_KEY_PE     = '港股@市盈率(pe,ttm)[20260306]'
+MKT_KEY_PB     = '港股@市净率(pb)[20260309]'
+MKT_KEY_SHARES = '港股@总股本[20260309]'
+
+# ---- 加载 AKShare 市场数据（若存在则覆盖易变字段，否则使用 iwencai 原始数据）----
+_market_data = {}
+_market_updated_at = None
+_MARKET_JSON_PATH = os.path.join(BASE_DIR, 'hk_stocks_market.json')
+if os.path.exists(_MARKET_JSON_PATH):
+    try:
+        with open(_MARKET_JSON_PATH, encoding='utf-8') as _f:
+            _md = json.load(_f)
+        _market_data = _md.get('data', {})
+        _market_updated_at = _md.get('updated_at', '?')
+        print(f"市场数据已加载: {len(_market_data)} 只, 更新于 {_market_updated_at}")
+    except Exception as _e:
+        print(f"警告: 市场数据加载失败 ({_e}), 使用 iwencai 原始数据")
+
 # ---- Column schema ----
 # Fixed columns (order matters; idx 0 = 序号 computed)
 FIXED_COLS = [
     # (display_name, raw_key_or_None)
+    # 易变字段使用 MKT_KEY_* 常量，方便统一维护
     ('序号',           None),
     ('股票代码',        '股票代码'),
     ('股票简称',        '股票简称'),
-    ('最新价(港元)',    '港股@最新价'),
-    ('最新涨跌幅(%)',   '港股@最新涨跌幅'),
-    ('总市值(港元)',    '港股@总市值[20260309]'),
-    ('市盈率(pe,ttm)', '港股@市盈率(pe,ttm)[20260306]'),
-    ('市净率(pb)',      '港股@市净率(pb)[20260309]'),
-    ('总股本(股)',      '港股@总股本[20260309]'),
+    ('最新价(港元)',    MKT_KEY_PRICE),
+    ('最新涨跌幅(%)',   MKT_KEY_CHG),
+    ('总市值(港元)',    MKT_KEY_MKTCAP),
+    ('市盈率(pe,ttm)', MKT_KEY_PE),
+    ('市净率(pb)',      MKT_KEY_PB),
+    ('总股本(股)',      MKT_KEY_SHARES),
     ('所属恒生行业',    '港股@所属恒生行业(二级)'),
 ]
 
@@ -148,6 +173,29 @@ def clean_code(raw_code):
         return code.zfill(5)
     return code
 
+
+def _inject_market(obj):
+    """用 AKShare 最新行情覆盖 obj 中的易变字段（各项有值才覆盖，缺失则保留 iwencai 原始值）。
+    覆盖同一 key，下游 FIXED_COLS / compute_phase1 无需改动。
+    受影响的计算链：mkt_cap → 股东收益率 → 低估排名 → 综合排名；PE → 低估排名(金融股)。
+    """
+    code = clean_code(obj.get('股票代码', ''))
+    m = _market_data.get(code)
+    if not m:
+        return
+    if m.get('price') is not None:
+        obj[MKT_KEY_PRICE] = m['price']
+    if m.get('change_pct') is not None:
+        obj[MKT_KEY_CHG] = m['change_pct']
+    if m.get('mkt_cap') is not None:
+        obj[MKT_KEY_MKTCAP] = m['mkt_cap']
+    if m.get('pe') is not None:
+        obj[MKT_KEY_PE] = m['pe']
+    if m.get('pb') is not None:
+        obj[MKT_KEY_PB] = m['pb']
+    # 总股本（MKT_KEY_SHARES）不从 AKShare 更新：变动极少，iwencai 数据已足够
+
+
 obj_rows = raw['rows']
 
 # Remove RMB counter stocks: 股票简称 ends with R after hyphen
@@ -159,6 +207,15 @@ names = {r.get('股票简称', '') for r in obj_rows}
 obj_rows = [r for r in obj_rows
             if not (r.get('股票简称', '').endswith('-B')
                     and r.get('股票简称', '')[:-2] in names)]
+
+# ---- 注入 AKShare 市场数据（在过滤之后、计算之前）----
+if _market_data:
+    injected = sum(1 for obj in obj_rows if _market_data.get(clean_code(obj.get('股票代码', ''))))
+    for obj in obj_rows:
+        _inject_market(obj)
+    print(f"市场数据注入: {injected}/{len(obj_rows)} 只股票已覆盖易变字段")
+else:
+    print("市场数据未加载，使用 iwencai 原始数据（运行 update_market.py 可获取最新行情）")
 
 # ---- Computed column helpers ----
 PERIOD_CODE = {label: code for code, label in PERIOD_DATES}
@@ -337,7 +394,7 @@ def compute_phase1(obj):
         v_shareholder_yield = None
     else:
         try:
-            mkt_cap = float(obj.get('港股@总市值[20260309]') or 0) or None
+            mkt_cap = float(obj.get(MKT_KEY_MKTCAP) or 0) or None
         except:
             mkt_cap = None
         # v_net_cash 对非金融股始终为数值（空项已视为0）
@@ -372,7 +429,7 @@ def compute_phase1(obj):
 
     # PE TTM (for 低估排序分 金融股)
     try:
-        v_pe_ttm = float(obj.get('港股@市盈率(pe,ttm)[20260306]') or 0) or None
+        v_pe_ttm = float(obj.get(MKT_KEY_PE) or 0) or None
     except:
         v_pe_ttm = None
 

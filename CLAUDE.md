@@ -22,19 +22,75 @@ git push
 
 ## 核心文件
 
-- **`build_html.py`** — 唯一需要编辑的核心文件（约1200行）
-- **`hk_stocks_data_new.json`** — 原始数据源，不要手动修改（由抓取流程更新）
-- **`hk_stocks.html`** — 由 `build_html.py` 生成，不在 git 中
+### 数据源（两层架构）
+- **`hk_stocks_data_new.json`** — 稳定财务数据（iwencai 抓取，每季度更新），不要手动修改
+- **`hk_stocks_market.json`** — 易变市场数据（AKShare 每日更新），由 `update_market.py` 生成
+
+### 脚本
+- **`build_html.py`** — 唯一需要编辑的核心文件（约1300行）。加载两个 JSON，注入市场数据，计算所有派生列，输出 HTML
+- **`update_market.py`** — 每日行情更新脚本。从 AKShare 获取最新价/涨跌幅，计算总市值（= 最新价 × 总股本），保存至 `hk_stocks_market.json`
+- **`daily_update.sh`** — 每日自动化脚本：依次运行 `update_market.py` → `build_html.py`，可选 `--push` 自动提交
 - **`scraper_browser.js`** — 浏览器控制台抓取脚本（每次抓取粘贴到 DevTools）
 - **`run_server.sh`** — 启动数据接收服务器的脚本
 - **`recv_server.py`** — 数据接收服务器（监听 9876 端口，保存 JSON）
+
+### 输出
+- **`hk_stocks.html`** — 由 `build_html.py` 生成，不在 git 中
 
 生成命令：`python3 build_html.py`
 输出：`hk_stocks.html`（约1.5MB，自包含，直接浏览器打开）
 
 ---
 
-## 数据更新流程（抓取新数据）
+## 每日行情更新（AKShare）
+
+### 快速运行
+
+```bash
+cd /Users/flakeliu/claude/stocks
+python3 update_market.py          # 更新行情数据 JSON
+python3 build_html.py             # 重建 HTML
+# 或一键执行：
+./daily_update.sh --push          # 更新 + 重建 + git push
+```
+
+### 建议 crontab（港股收盘后 16:30 HKT）
+
+```
+30 16 * * 1-5  /Users/flakeliu/claude/stocks/daily_update.sh --push >> /tmp/hk_stocks_daily.log 2>&1
+```
+
+### 数据来源与局限性
+
+| 字段 | 来源 | 更新频率 |
+|------|------|---------|
+| 最新价、涨跌幅 | AKShare `stock_hk_spot_em` | 每日 |
+| 总市值 | 最新价 × 总股本（总股本来自 iwencai） | 每日 |
+| PE(TTM)、PB | iwencai 原始数据（AKShare 无批量接口） | 仅随 iwencai 抓取更新 |
+| 财务数据（净利润、ROE 等） | iwencai 原始数据 | 每季度 |
+
+> **注意**：AKShare 目前没有批量港股 PE/PB 接口，暂用 iwencai 历史数据。
+> 总市值通过 `最新价 × 总股本` 实时计算，精度高。
+
+### 市场数据注入（级联更新）
+
+`build_html.py` 在运行时自动加载 `hk_stocks_market.json`，用最新数据覆盖 iwencai 原始值，
+然后从头重新计算所有派生列。因此更新行情后，以下链式计算自动刷新：
+
+```
+mkt_cap（最新价×总股本）
+  → 股东收益率 = TTMFCF / (mkt_cap + 净现金)
+    → 低估排名（非金融股）
+      → 综合排名
+
+PE(TTM)
+  → 低估排名（金融股）
+    → 综合排名
+```
+
+---
+
+## 数据更新流程（抓取新财务数据）
 
 ### 问财查询 URL（直接在浏览器打开）
 
@@ -94,11 +150,28 @@ JINRONG_SET = {'保险', '其他金融', '银行'}
 # + 综合企业中含"中信股份"的股票
 ```
 
+### MKT_KEY_* 易变字段常量
+
+`build_html.py` 顶部定义所有易变字段的 key，避免散落在代码各处。若 iwencai 抓取的字段名包含日期变了，只需改这里：
+
+```python
+MKT_KEY_PRICE  = '港股@最新价'
+MKT_KEY_CHG    = '港股@最新涨跌幅'
+MKT_KEY_MKTCAP = '港股@总市值[20260309]'     # 含日期，需随抓取日期更新
+MKT_KEY_PE     = '港股@市盈率(pe,ttm)[20260306]'
+MKT_KEY_PB     = '港股@市净率(pb)[20260309]'
+MKT_KEY_SHARES = '港股@总股本[20260309]'      # update_market.py 同步引用此 key
+```
+
+> **重要**：`update_market.py` 中的 `SHARES_KEY` 必须与 `build_html.py` 的 `MKT_KEY_SHARES` 保持一致。
+
 ### 索引常量（自动计算，勿手动修改）
 ```python
 PERIOD_START    = 10 + len(COMPUTED_COL_DEFS)   # 当前 = 38
+N_PERIODS       = len(PERIOD_DATES)              # 当前 = 12（最新为 2025年报）
 TTMROE_IDX_PY   = 10 + COMPUTED_COL_DEFS.index('TTMROE')    # = 18
 TTMROIC_IDX_PY  = 10 + COMPUTED_COL_DEFS.index('TTMROIC')   # = 19
+# 各报期的年报位置通过 _PLABELS.index('2024年报') 动态查找，勿硬编码
 ```
 
 ### 空值处理规则

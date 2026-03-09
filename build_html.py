@@ -818,7 +818,7 @@ tbody tr:nth-child(odd) td:nth-child(3) {{ background: #fff; }}
   <span>总市值 <strong id="sTotalMkt">-</strong></span>
   <span>平均PE(TTM) <strong id="sAvgPE">-</strong></span>
   <span>平均PB <strong id="sAvgPB">-</strong></span>
-  <span>平均ROE(2024年报) <strong id="sAvgROE">-</strong></span>
+  <span>平均TTMROE <strong id="sAvgROE">-</strong></span>
 </div>
 
 <!-- Column picker side panel -->
@@ -1197,7 +1197,7 @@ function updateSummary() {{
     const mkt = parseNum(r[5]); if (mkt && mkt > 0) totalMkt += mkt;
     const pe = parseNum(r[6]);  if (pe && pe > 0 && pe < 1000) {{ totalPE += pe; cPE++; }}
     const pb = parseNum(r[7]);  if (pb && pb > 0 && pb < 100)  {{ totalPB += pb; cPB++; }}
-    const roe = parseNum(r[ROE_IDX]); if (roe !== null) {{ totalROE += roe; cROE++; }}
+    const roe = parseNum(r[TTMROE_IDX]); if (roe !== null) {{ totalROE += roe; cROE++; }}
   }});
   document.getElementById('sTotalMkt').textContent = fmtMktCap(totalMkt || null);
   document.getElementById('sAvgPE').textContent = cPE ? (totalPE/cPE).toFixed(1)+'x' : '--';

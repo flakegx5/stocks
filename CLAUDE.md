@@ -65,12 +65,16 @@ python3 build_html.py             # 重建 HTML
 | 字段 | 来源 | 更新频率 |
 |------|------|---------|
 | 最新价、涨跌幅 | AKShare `stock_hk_spot_em` | 每日 |
-| 总市值 | 最新价 × 总股本（总股本来自 iwencai） | 每日 |
-| PE(TTM)、PB | iwencai 原始数据（AKShare 无批量接口） | 仅随 iwencai 抓取更新 |
-| 财务数据（净利润、ROE 等） | iwencai 原始数据 | 每季度 |
+| 总市值 | 最新价 × 总股本（总股本来自 iwencai） | 每日（AKShare 注入后） |
+| **PE(TTM)** | **动态计算 = 总市值 ÷ TTM归母净利润** | **每日（随市值自动更新）** |
+| **PB** | **动态计算 = 总市值 ÷ 净资产（最新财报期）** | **每日（iwencai 重抓后包含净资产时）** |
+| 净资产（PB分母） | iwencai 财务数据 | 每季度 |
+| 其他财务数据（净利润、ROE 等） | iwencai 原始数据 | 每季度 |
 
-> **注意**：AKShare 目前没有批量港股 PE/PB 接口，暂用 iwencai 历史数据。
-> 总市值通过 `最新价 × 总股本` 实时计算，精度高。
+> **PE/PB 动态计算说明**：
+> - PE(TTM) = 总市值 ÷ TTM归母净利润（利润 > 0 时有效；亏损股 fallback 到 iwencai 静态值）
+> - PB = 总市值 ÷ 净资产（取最近有数据的财报期，fallback 到 iwencai 静态值）
+> - 净资产字段由 `_NET_ASSETS_CANDIDATES` 列表自动探测，iwencai 重抓后无需手动配置
 
 ### 市场数据注入（级联更新）
 

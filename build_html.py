@@ -17,10 +17,21 @@ MKT_KEY_PE     = '港股@市盈率(pe,ttm)[20260306]'
 MKT_KEY_PB     = '港股@市净率(pb)[20260309]'
 MKT_KEY_SHARES = '港股@总股本[20260309]'
 
+# ---- 净资产字段候选（按优先级，iwencai 重抓后自动匹配，无需手动确认）----
+# PE/PB 动态计算时，净资产从此列表中自动探测实际存在的字段名
+_NET_ASSETS_CANDIDATES = [
+    '归属于母公司股东的权益合计',
+    '归属于母公司所有者权益合计',
+    '所有者权益合计',
+    '权益合计',
+    '净资产',
+]
+
 # ---- 加载 AKShare 市场数据（若存在则覆盖易变字段，否则使用 iwencai 原始数据）----
 _market_data = {}
 _market_updated_at = None
-_MARKET_JSON_PATH = os.path.join(BASE_DIR, 'hk_stocks_market.json')
+_FINANCIAL_JSON_PATH = os.path.join(BASE_DIR, 'hk_stocks_data_new.json')
+_MARKET_JSON_PATH    = os.path.join(BASE_DIR, 'hk_stocks_market.json')
 if os.path.exists(_MARKET_JSON_PATH):
     try:
         with open(_MARKET_JSON_PATH, encoding='utf-8') as _f:
@@ -30,6 +41,16 @@ if os.path.exists(_MARKET_JSON_PATH):
         print(f"市场数据已加载: {len(_market_data)} 只, 更新于 {_market_updated_at}")
     except Exception as _e:
         print(f"警告: 市场数据加载失败 ({_e}), 使用 iwencai 原始数据")
+
+# ---- 数据优先级：比较两个 JSON 的修改时间 ----
+# 规则：
+#   iwencai JSON（hk_stocks_data_new.json）更新时 → iwencai 为准（跳过 AKShare 注入）
+#   AKShare JSON（hk_stocks_market.json）更新时   → 注入易变字段（价格/市值）
+# 这样每次完整重抓 iwencai 后，PE/PB/市值等均以 iwencai 最新值为基础计算；
+# 日常 daily_update.sh 小更新时，再用 AKShare 刷新价格和市值。
+_financial_mtime = os.path.getmtime(_FINANCIAL_JSON_PATH)
+_market_mtime    = os.path.getmtime(_MARKET_JSON_PATH) if os.path.exists(_MARKET_JSON_PATH) else 0.0
+_use_market_injection = bool(_market_data) and (_market_mtime > _financial_mtime)
 
 # ---- Column schema ----
 # Fixed columns (order matters; idx 0 = 序号 computed)
@@ -175,9 +196,10 @@ def clean_code(raw_code):
 
 
 def _inject_market(obj):
-    """用 AKShare 最新行情覆盖 obj 中的易变字段（各项有值才覆盖，缺失则保留 iwencai 原始值）。
+    """用 AKShare 最新行情覆盖 obj 中的价格/市值易变字段（各项有值才覆盖）。
     覆盖同一 key，下游 FIXED_COLS / compute_phase1 无需改动。
-    受影响的计算链：mkt_cap → 股东收益率 → 低估排名 → 综合排名；PE → 低估排名(金融股)。
+    受影响的计算链：mkt_cap → PE/PB 动态值 → 股东收益率 → 低估排名 → 综合排名。
+    注：PE/PB 由 compute_phase1 根据最新 mkt_cap 动态计算，此处不再注入 PE/PB 静态值。
     """
     code = clean_code(obj.get('股票代码', ''))
     m = _market_data.get(code)
@@ -189,10 +211,7 @@ def _inject_market(obj):
         obj[MKT_KEY_CHG] = m['change_pct']
     if m.get('mkt_cap') is not None:
         obj[MKT_KEY_MKTCAP] = m['mkt_cap']
-    if m.get('pe') is not None:
-        obj[MKT_KEY_PE] = m['pe']
-    if m.get('pb') is not None:
-        obj[MKT_KEY_PB] = m['pb']
+    # PE/PB 不从 AKShare 注入：由 compute_phase1 根据 mkt_cap + 财务数据动态计算
     # 总股本（MKT_KEY_SHARES）不从 AKShare 更新：变动极少，iwencai 数据已足够
 
 
@@ -209,11 +228,15 @@ obj_rows = [r for r in obj_rows
                     and r.get('股票简称', '')[:-2] in names)]
 
 # ---- 注入 AKShare 市场数据（在过滤之后、计算之前）----
-if _market_data:
+# _use_market_injection = True  → AKShare 更新较新，注入最新价格/市值
+# _use_market_injection = False → iwencai 重抓较新，以 iwencai 为准（包含最新 PE/PB/市值）
+if _use_market_injection:
     injected = sum(1 for obj in obj_rows if _market_data.get(clean_code(obj.get('股票代码', ''))))
     for obj in obj_rows:
         _inject_market(obj)
-    print(f"市场数据注入: {injected}/{len(obj_rows)} 只股票已覆盖易变字段")
+    print(f"AKShare 注入: {injected}/{len(obj_rows)} 只股票已更新价格/市值（市场数据: {_market_updated_at}）")
+elif _market_data:
+    print(f"iwencai 数据更新（mtime 较新），跳过 AKShare 注入，以 iwencai 原始值为准")
 else:
     print("市场数据未加载，使用 iwencai 原始数据（运行 update_market.py 可获取最新行情）")
 
@@ -427,11 +450,39 @@ def compute_phase1(obj):
     v_return_ratio = (None if ttm_p is None or ttm_p == 0
                       else v_exp_return / ttm_p * 100)
 
-    # PE TTM (for 低估排序分 金融股)
+    # ---- 获取总市值（PE/PB 动态计算公用，所有股票均需）----
     try:
-        v_pe_ttm = float(obj.get(MKT_KEY_PE) or 0) or None
+        _mkt_cap = float(obj.get(MKT_KEY_MKTCAP) or 0) or None
     except:
-        v_pe_ttm = None
+        _mkt_cap = None
+
+    # ---- PE(TTM) 动态计算 = 总市值 / TTM归母净利润 ----
+    # 条件：ttm_p > 0（亏损时 PE 无意义）且 mkt_cap 有值
+    # 优先动态值，fallback 到 iwencai 静态值
+    if _mkt_cap is not None and ttm_p is not None and ttm_p > 0:
+        v_pe_ttm = _mkt_cap / ttm_p
+        obj[MKT_KEY_PE] = v_pe_ttm   # 回写，供 FIXED_COLS 列和 JS 显示
+    else:
+        try:
+            v_pe_ttm = float(obj.get(MKT_KEY_PE) or 0) or None
+        except:
+            v_pe_ttm = None
+
+    # ---- PB 动态计算 = 总市值 / 净资产（取最近有数据的报期）----
+    # 净资产字段名由 _NET_ASSETS_CANDIDATES 自动探测（iwencai 重抓后生效）
+    # fallback：若净资产数据暂缺，保留 iwencai 静态 PB
+    _net_assets = None
+    for _, _period_label in PERIOD_DATES:
+        for _na_raw in _NET_ASSETS_CANDIDATES:
+            _val = _get_float(obj, _na_raw, _period_label)
+            if _val is not None:
+                _net_assets = _val
+                break
+        if _net_assets is not None:
+            break
+
+    if _mkt_cap is not None and _net_assets is not None and _net_assets > 0:
+        obj[MKT_KEY_PB] = _mkt_cap / _net_assets   # 回写，供 FIXED_COLS 列显示
 
     return {
         'vals': [

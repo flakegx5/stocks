@@ -23,11 +23,57 @@ git push
 ## 核心文件
 
 - **`build_html.py`** — 唯一需要编辑的核心文件（约1200行）
-- **`hk_stocks_data_new.json`** — 原始数据源，不要修改
+- **`hk_stocks_data_new.json`** — 原始数据源，不要手动修改（由抓取流程更新）
 - **`hk_stocks.html`** — 由 `build_html.py` 生成，不在 git 中
+- **`scraper_browser.js`** — 浏览器控制台抓取脚本（每次抓取粘贴到 DevTools）
+- **`run_server.sh`** — 启动数据接收服务器的脚本
+- **`recv_server.py`** — 数据接收服务器（监听 9876 端口，保存 JSON）
 
 生成命令：`python3 build_html.py`
 输出：`hk_stocks.html`（约1.5MB，自包含，直接浏览器打开）
+
+---
+
+## 数据更新流程（抓取新数据）
+
+### 问财查询 URL（直接在浏览器打开）
+
+```
+https://www.iwencai.com/unifiedwap/result?w=港股范围内，市值大于50亿港元，列出最新pe、pb、总股本、所属行业，列出2025年年报和2025年三季报的分别以下数字，包括：归母净利润、总现金、流动资产、总负债、短期借款、长期借款、ROE、ROIC、经营活动现金流净额、投资活动现金流净额、资本性支出、融资活动现金流量净额、年度分红、现金流量表中的股份回购、现金流量表中的支付股息，归母净利润同比增速。&querytype=hkstock
+```
+
+> **注意**：每次新年报/季报出来后，把 URL 里的报期（如"2025年三季报"→"2025年报"）对应更新。
+
+### 操作步骤
+
+**第一步：启动接收服务器**（新终端窗口，保持运行）
+```bash
+cd /Users/flakeliu/claude/stocks
+./run_server.sh
+```
+
+**第二步：在 Chrome 打开上面的问财 URL，等数据表格加载完毕**
+
+**第三步：打开 DevTools (F12) → Console，粘贴 `scraper_browser.js` 全文并回车**
+
+脚本会提示：`请手动点击"第2页"按钮` → 点击一次翻页，脚本自动捕获 API 后飞速拉取所有页。
+
+**第四步：看到 `✅ DONE` 后，终端会显示 `Saved XXX rows`**
+
+**第五步：重新生成 HTML 并提交**
+```bash
+python3 build_html.py
+git add hk_stocks_data_new.json build_html.py
+git commit -m "数据更新: YYYY-MM-DD"
+git push
+```
+
+### 说明
+
+- 脚本通过**拦截浏览器自身的 fetch/XHR 请求**获取 API endpoint 和鉴权参数（cookie、comp_id 等），无需手动配置任何 token
+- 直接调用内部 API，每页约 0.2 秒，15页全部完成约 3-5 秒，数据精准无截断
+- 每次会话的 `comp_id` 和 session token 会变，因此脚本需要每次重新捕获（不能写死）
+- `run_server.sh` 确保服务器从项目目录启动，数据保存到正确位置
 
 ---
 

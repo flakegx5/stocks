@@ -366,12 +366,13 @@ def compute_phase1(obj):
         v_exp_div = None if (_exp_div_raw is not None and _exp_div_raw < 0) else _exp_div_raw
 
     # 预期25股东回报: 预期25年度分红 + |TTM股份回购| / 2
+    # 各项为空视为0，避免某一项缺失导致整体为空（如有分红无回购数据，回报仍应有值）
     v_buy_raw = neg_only(ttm_yi(BUY))
     v_buy_abs = (-v_buy_raw) if v_buy_raw is not None else 0
-    v_exp_return = (None if v_exp_div is None else v_exp_div + (v_buy_abs / 2))
+    v_exp_return = (v_exp_div or 0) + (v_buy_abs / 2)
 
     # 股东回报分配率: 预期25股东回报 / TTM归母净利润 * 100
-    v_return_ratio = (None if v_exp_return is None or ttm_p is None or ttm_p == 0
+    v_return_ratio = (None if ttm_p is None or ttm_p == 0
                       else v_exp_return / ttm_p * 100)
 
     # PE TTM (for 低估排序分 金融股)

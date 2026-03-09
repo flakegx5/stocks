@@ -1025,7 +1025,7 @@ function getColUnit(col) {{
   if (col.idx === 8) return '亿股';
   if (COMPUTED_YI_COLS.has(col.idx)) return '亿';
   if (col.idx === 12 || col.idx === TTMROE_IDX || col.idx === TTMROIC_IDX
-      || col.idx === 31 || col.idx === 32) return '%';
+      || col.idx === 32 || col.idx === 33) return '%';
   if (col.group !== '基本信息' && col.group !== '计算指标' && !PCT_METRICS.has(col.group)) return '亿';
   return '';
 }}
@@ -1038,7 +1038,7 @@ function fmtCell(val, col) {{
   }}
   if (col.idx === 10) return val;  // 最新财报季: text as-is
   if (col.idx === 12 || col.idx === TTMROE_IDX || col.idx === TTMROIC_IDX
-      || col.idx === 31 || col.idx === 32) {{  // % cols: 1 decimal
+      || col.idx === 32 || col.idx === 33) {{  // % cols: 1 decimal
     const n = parseNum(String(val));
     return n === null ? val : n.toFixed(1);
   }}

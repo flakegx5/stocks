@@ -87,7 +87,8 @@
     }
 
     const perpage = parseInt(bodyTemplate.match(/\bperpage=(\d+)\b/)?.[1] || '50');
-    const total   = comp0.meta?.extra?.total_count ?? comp0.datas?.length ?? 50;
+    const extra   = comp0.meta?.extra || {};
+    const total   = parseInt(extra.row_count || extra.code_count || comp0.datas?.length || 50);
     const totalPages = Math.ceil(total / perpage);
     console.log(`[Scraper] 共 ${total} 条，每页 ${perpage}，需抓 ${totalPages} 页`);
 

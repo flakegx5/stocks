@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Build self-contained HTML page for HK stock data (new object-format input)."""
-import json, re
+import json, re, os
 
-with open('/Users/flakeliu/claude/hk_stocks_data_new.json', encoding='utf-8') as f:
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+with open(os.path.join(BASE_DIR, 'hk_stocks_data_new.json'), encoding='utf-8') as f:
     raw = json.load(f)
 
 # ---- Column schema ----
@@ -1318,7 +1320,7 @@ render();
 </body>
 </html>'''
 
-with open('/Users/flakeliu/claude/hk_stocks.html', 'w', encoding='utf-8') as f:
+with open(os.path.join(BASE_DIR, 'hk_stocks.html'), 'w', encoding='utf-8') as f:
     f.write(html)
 
 print(f"HTML generated: {len(html):,} chars")

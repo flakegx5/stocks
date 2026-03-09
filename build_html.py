@@ -16,15 +16,16 @@ FIXED_COLS = [
     ('股票简称',        '股票简称'),
     ('最新价(港元)',    '港股@最新价'),
     ('最新涨跌幅(%)',   '港股@最新涨跌幅'),
-    ('总市值(港元)',    '港股@总市值[20260306]'),
+    ('总市值(港元)',    '港股@总市值[20260309]'),
     ('市盈率(pe,ttm)', '港股@市盈率(pe,ttm)[20260306]'),
-    ('市净率(pb)',      '港股@市净率(pb)[20260306]'),
-    ('总股本(股)',      '港股@总股本[20260306]'),
+    ('市净率(pb)',      '港股@市净率(pb)[20260309]'),
+    ('总股本(股)',      '港股@总股本[20260309]'),
     ('所属恒生行业',    '港股@所属恒生行业(二级)'),
 ]
 
 # Periods: most recent first
 PERIOD_DATES = [
+    ('20251231', '2025年报'),
     ('20250930', '2025三季报'),
     ('20250630', '2025中报'),
     ('20250331', '2025一季报'),
@@ -217,25 +218,50 @@ def compute_phase1(obj):
 
     def gf(metric, period): return _get_float(obj, metric, period)
 
-    has_q3 = gf(P, '2025三季报') is not None
-    lp = '2025三季报' if has_q3 else '2025中报'  # latest_period
+    has_annual  = gf(P, '2025年报') is not None
+    has_q3      = gf(P, '2025三季报') is not None
+
+    # latest_period: 2025年报 > 2025三季报 > 2025中报
+    if has_annual:
+        lp = '2025年报'
+    elif has_q3:
+        lp = '2025三季报'
+    else:
+        lp = '2025中报'
 
     def ttm(metric, q_latest, annual, q_base):
         r, a, b = gf(metric, q_latest), gf(metric, annual), gf(metric, q_base)
         return None if any(v is None for v in [r, a, b]) else r + (a - b)
 
-    if has_q3:
+    # TTM归母净利润 and YoY
+    if has_annual:
+        ttm_p    = gf(P, '2025年报')
+        ttm_base = gf(P, '2024年报')
+        # 优先用年报自带同比字段
+        _ann_yoy = gf('归属母公司股东的净利润(同比增长率)', '2025年报')
+        if _ann_yoy is not None:
+            ttm_yoy = _ann_yoy
+        elif ttm_p is not None and ttm_base and ttm_base != 0:
+            ttm_yoy = (ttm_p - ttm_base) / abs(ttm_base) * 100
+        else:
+            ttm_yoy = None
+    elif has_q3:
         ttm_p    = ttm(P, '2025三季报', '2024年报', '2024三季报')
         ttm_base = ttm(P, '2024三季报', '2023年报', '2023三季报')
+        ttm_yoy  = ((ttm_p - ttm_base) / abs(ttm_base) * 100
+                    if ttm_p is not None and ttm_base and ttm_base != 0 else None)
     else:
         ttm_p    = ttm(P, '2025中报', '2024年报', '2024中报')
         ttm_base = ttm(P, '2024中报', '2023年报', '2023中报')
-
-    ttm_yoy = ((ttm_p - ttm_base) / abs(ttm_base) * 100
-               if ttm_p is not None and ttm_base and ttm_base != 0 else None)
+        ttm_yoy  = ((ttm_p - ttm_base) / abs(ttm_base) * 100
+                    if ttm_p is not None and ttm_base and ttm_base != 0 else None)
 
     def ttm_pct(metric):
-        """TTM for % metrics (ROE/ROIC): Q3 preferred, fallback H1."""
+        """TTM for % metrics (ROE/ROIC): 年报直接用, then Q3, fallback H1."""
+        if has_annual:
+            ann = gf(metric, '2025年报')
+            if ann is not None:
+                return ann
         r_q3 = gf(metric, '2025三季报')
         if r_q3 is not None:
             a, b = gf(metric, '2024年报'), gf(metric, '2024三季报')
@@ -247,7 +273,11 @@ def compute_phase1(obj):
         return None
 
     def ttm_yi(raw_metric):
-        """TTM for 亿 metrics: per-metric Q3/H1 availability check."""
+        """TTM for 亿 metrics: 年报直接用, then Q3/H1 TTM calculation."""
+        if has_annual:
+            ann = gf(raw_metric, '2025年报')
+            if ann is not None:
+                return ann
         q3 = gf(raw_metric, '2025三季报')
         if q3 is not None:
             return ttm(raw_metric, '2025三季报', '2024年报', '2024三季报')
@@ -313,7 +343,7 @@ def compute_phase1(obj):
         v_shareholder_yield = None
     else:
         try:
-            mkt_cap = float(obj.get('港股@总市值[20260306]') or 0) or None
+            mkt_cap = float(obj.get('港股@总市值[20260309]') or 0) or None
         except:
             mkt_cap = None
         if v_ttmfcf is not None and mkt_cap is not None and v_net_cash is not None:
@@ -322,11 +352,15 @@ def compute_phase1(obj):
         else:
             v_shareholder_yield = None
 
-    # 预期25年度分红: 2024年度分红 × (1 + TTM净利同比/100)；若结果为负则为空
-    _div_2024   = gf(DIV_ANN, '2024年报')
-    _exp_div_raw = (None if _div_2024 is None or ttm_yoy is None
-                    else _div_2024 * (1 + ttm_yoy / 100))
-    v_exp_div = None if (_exp_div_raw is not None and _exp_div_raw < 0) else _exp_div_raw
+    # 预期25年度分红: 若有2025年报实际分红则直接用；否则 2024年度分红×(1+TTM净利同比/100)；结果为负→空
+    _div_2025_actual = gf(DIV_ANN, '2025年报')
+    if _div_2025_actual is not None:
+        v_exp_div = None if _div_2025_actual < 0 else _div_2025_actual
+    else:
+        _div_2024    = gf(DIV_ANN, '2024年报')
+        _exp_div_raw = (None if _div_2024 is None or ttm_yoy is None
+                        else _div_2024 * (1 + ttm_yoy / 100))
+        v_exp_div = None if (_exp_div_raw is not None and _exp_div_raw < 0) else _exp_div_raw
 
     # 预期25股东回报: 预期25年度分红 + |TTM股份回购| / 2
     v_buy_raw = neg_only(ttm_yi(BUY))

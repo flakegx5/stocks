@@ -307,25 +307,19 @@ def compute_phase1(obj):
     v_icf     = ttm_yi(ICF)
     v_cap     = negate_neg_only(ttm_yi(CAP))   # stored as negative (outflow) or None
 
-    # 净现金: 总现金 - 短期借款 - 长期借款（缺失数据视为0，全部缺失才为空）
+    # 净现金: 总现金 - 短期借款 - 长期借款（各项为空视为0；金融股→空）
     if is_jrong:
         v_net_cash = None
     else:
         _ch, _sd, _ld = gv(CH), gv(SD), gv(LD)
-        if _ch is None and _sd is None and _ld is None:
-            v_net_cash = None
-        else:
-            v_net_cash = (_ch or 0) - (_sd or 0) - (_ld or 0)
+        v_net_cash = (_ch or 0) - (_sd or 0) - (_ld or 0)
 
-    # 有息负债: 短期借款 + 长期借款（缺失数据视为0，全部缺失才为空）
+    # 有息负债: 短期借款 + 长期借款（各项为空视为0；金融股→空）
     if is_jrong:
         v_interest_debt = None
     else:
         _sd2, _ld2 = gv(SD), gv(LD)
-        if _sd2 is None and _ld2 is None:
-            v_interest_debt = None
-        else:
-            v_interest_debt = (_sd2 or 0) + (_ld2 or 0)
+        v_interest_debt = (_sd2 or 0) + (_ld2 or 0)
 
     # TTMFCF: max(OCF+CapEx, OCF+ICF)
     if is_jrong:
@@ -346,7 +340,8 @@ def compute_phase1(obj):
             mkt_cap = float(obj.get('港股@总市值[20260309]') or 0) or None
         except:
             mkt_cap = None
-        if v_ttmfcf is not None and mkt_cap is not None and v_net_cash is not None:
+        # v_net_cash 对非金融股始终为数值（空项已视为0）
+        if v_ttmfcf is not None and mkt_cap is not None:
             denom = mkt_cap + v_net_cash
             v_shareholder_yield = (v_ttmfcf / denom * 100) if denom != 0 else None
         else:

@@ -352,10 +352,13 @@ def compute_phase1(obj):
         else:
             v_shareholder_yield = None
 
-    # 预期25年度分红: 若有2025年报实际分红则直接用；否则 2024年度分红×(1+TTM净利同比/100)；结果为负→空
+    # 预期25年度分红:
+    # - 有25年报财务数据(has_annual)：直接等同25年报年度分红（无分红数据则为空）
+    #   注：25年报分红字段可能因中期分红等原因有数据但财务报表未出，故以财务数据存在与否为准
+    # - 无25年报财务数据：按旧方法估算 2024年度分红×(1+TTM净利同比/100)；结果为负→空
     _div_2025_actual = gf(DIV_ANN, '2025年报')
-    if _div_2025_actual is not None:
-        v_exp_div = None if _div_2025_actual < 0 else _div_2025_actual
+    if has_annual:
+        v_exp_div = None if (_div_2025_actual is None or _div_2025_actual < 0) else _div_2025_actual
     else:
         _div_2024    = gf(DIV_ANN, '2024年报')
         _exp_div_raw = (None if _div_2024 is None or ttm_yoy is None

@@ -597,13 +597,16 @@ periods_js = json.dumps([label for _, label in PERIOD_DATES], ensure_ascii=False
 metrics_js = json.dumps([disp for _, disp in PERIOD_METRICS], ensure_ascii=False)
 
 # Period cols start after fixed(10) + computed(28) = idx 38
-# metric_i * 11 + period_j; 2024年报 = period 3
-PERIOD_START = 10 + len(COMPUTED_COL_DEFS)   # = 38 (10 fixed + 28 computed)
-ROE_2024_IDX    = PERIOD_START + 7 * 11 + 3  # = 100
-PROFIT_2024_IDX = PERIOD_START + 0 * 11 + 3  # = 23
-CF_2024_IDX     = PERIOD_START + 9 * 11 + 3  # = 122
-ROIC_START_IDX  = PERIOD_START + 8 * 11      # = 108 (first ROIC period col)
-ROIC_END_IDX    = ROIC_START_IDX + 10        # = 118 (last ROIC period col, inclusive)
+# metric_i * N_PERIODS + period_j; N_PERIODS = len(PERIOD_DATES)
+PERIOD_START  = 10 + len(COMPUTED_COL_DEFS)           # = 38 (10 fixed + 28 computed)
+N_PERIODS     = len(PERIOD_DATES)                       # = 12 (2023Q1 → 2025年报)
+_PLABELS      = [label for _, label in PERIOD_DATES]   # most-recent-first
+_IDX_2024ANN  = _PLABELS.index('2024年报')             # = 4
+ROE_2024_IDX    = PERIOD_START + 7 * N_PERIODS + _IDX_2024ANN  # = 126
+PROFIT_2024_IDX = PERIOD_START + 0 * N_PERIODS + _IDX_2024ANN  # = 42
+CF_2024_IDX     = PERIOD_START + 9 * N_PERIODS + _IDX_2024ANN  # = 150
+ROIC_START_IDX  = PERIOD_START + 8 * N_PERIODS                  # = 134 (first ROIC period col)
+ROIC_END_IDX    = ROIC_START_IDX + N_PERIODS - 1                # = 145 (last ROIC period col, inclusive)
 TTMROE_IDX_PY   = 10 + COMPUTED_COL_DEFS.index('TTMROE')   # = 18
 TTMROIC_IDX_PY  = 10 + COMPUTED_COL_DEFS.index('TTMROIC')  # = 19
 
@@ -845,7 +848,7 @@ const ROE_IDX = {ROE_2024_IDX};
 const PROFIT_IDX = {PROFIT_2024_IDX};
 const CF_IDX = {CF_2024_IDX};
 const ROIC_START   = {ROIC_START_IDX};   // first ROIC period col
-const ROIC_END     = {ROIC_END_IDX};     // last  ROIC period col (inclusive, 11 periods)
+const ROIC_END     = {ROIC_END_IDX};     // last  ROIC period col (inclusive, {N_PERIODS} periods)
 const TTMROE_IDX   = {TTMROE_IDX_PY};   // computed TTMROE col
 const TTMROIC_IDX  = {TTMROIC_IDX_PY};  // computed TTMROIC col
 
@@ -1358,4 +1361,6 @@ with open(os.path.join(BASE_DIR, 'hk_stocks.html'), 'w', encoding='utf-8') as f:
 
 print(f"HTML generated: {len(html):,} chars")
 print(f"Columns: {len(headers)}, Rows: {len(rows)}")
+print(f"N_PERIODS={N_PERIODS}, 2024年报@position={_IDX_2024ANN}")
 print(f"ROE_2024_IDX={ROE_2024_IDX}, PROFIT_2024_IDX={PROFIT_2024_IDX}, CF_2024_IDX={CF_2024_IDX}")
+print(f"ROIC_START_IDX={ROIC_START_IDX}, ROIC_END_IDX={ROIC_END_IDX}")

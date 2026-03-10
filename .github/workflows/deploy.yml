@@ -15,6 +15,10 @@ jobs:
           host: 138.2.85.51
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 5m
+          fingerprint: SHA256:VHpTQjlvS4AZQSb9ENVqQRAWrKrVfqRlxPXVjmrb8xM
           script: |
             cd /home/ubuntu/stocks
             git pull origin main

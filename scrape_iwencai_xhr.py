@@ -396,6 +396,7 @@ if __name__ == '__main__':
 
     debug = '--debug' in args
     build = '--build' in args
+    push  = '--push'  in args
 
     success = do_scrape(debug=debug)
 
@@ -411,3 +412,20 @@ if __name__ == '__main__':
             print("❌ build_html.py 出错:", result.stderr)
         else:
             print("✅ HTML 已重建")
+
+        if push:
+            from datetime import datetime
+            ts = datetime.now().strftime('%Y-%m-%d %H:%M')
+            print(f"\n📤 推送至 GitHub ({ts})...")
+            subprocess.run(['git', 'add',
+                            'hk_stocks_data_new.json', 'data.js', 'index.html'],
+                           cwd=BASE_DIR)
+            ret = subprocess.run(
+                ['git', 'commit', '-m', f'数据更新: {ts}'],
+                cwd=BASE_DIR
+            )
+            if ret.returncode == 0:
+                subprocess.run(['git', 'push'], cwd=BASE_DIR)
+                print("✅ 已推送至 GitHub")
+            else:
+                print("⚠️  无变更可提交，跳过 push")

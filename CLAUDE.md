@@ -43,54 +43,49 @@ git push
 
 ---
 
-## 每日行情更新（AKShare）
+## 每日行情更新（iwencai 直接抓取）
 
-### 快速运行
+### 快速运行（手动触发）
 
 ```bash
 cd /Users/flakeliu/claude/stocks
-python3 update_market.py          # 更新行情数据 JSON
-python3 build_html.py             # 重建 HTML
-# 或一键执行：
-./daily_update.sh --push          # 更新 + 重建 + git push
+python3 scrape_iwencai_xhr.py --build --push   # 抓取 + 重建 + git push
 ```
 
-### 建议 crontab（港股收盘后 16:30 HKT）
+### 设置 crontab 自动运行（港股收盘后 17:00）
+
+```bash
+crontab -e   # 打开 crontab 编辑器，添加以下一行：
+```
 
 ```
-30 16 * * 1-5  /Users/flakeliu/claude/stocks/daily_update.sh --push >> /tmp/hk_stocks_daily.log 2>&1
+0 17 * * 1-5  cd /Users/flakeliu/claude/stocks && python3 scrape_iwencai_xhr.py --build --push >> /tmp/hk_stocks_daily.log 2>&1
 ```
 
-### 数据来源与局限性
+> 注意：iwencai session（`iwencai_session.json`）过期后需手动重新登录：
+> `python3 scrape_iwencai_xhr.py --login`
+
+### 数据来源（单一来源，无 AKShare 依赖）
 
 | 字段 | 来源 | 更新频率 |
 |------|------|---------|
-| 最新价、涨跌幅 | AKShare `stock_hk_spot_em` | 每日 |
-| 总市值 | 最新价 × 总股本（总股本来自 iwencai） | 每日（AKShare 注入后） |
+| 最新价、涨跌幅、总市值、PE、PB、总股本 | iwencai 每日抓取 | 每日（crontab） |
 | **PE(TTM)** | **动态计算 = 总市值 ÷ TTM归母净利润** | **每日（随市值自动更新）** |
-| **PB** | **动态计算 = 总市值 ÷ 净资产（最新财报期）** | **每日（iwencai 重抓后包含净资产时）** |
-| 净资产（PB分母） | iwencai 财务数据 | 每季度 |
-| 其他财务数据（净利润、ROE 等） | iwencai 原始数据 | 每季度 |
+| **PB** | **动态计算 = 总市值 ÷ 净资产** | **每日** |
+| 净资产（PB分母）、净利润、ROE 等财务数据 | iwencai | 每次抓取 |
 
-> **PE/PB 动态计算说明**：
-> - PE(TTM) = 总市值 ÷ TTM归母净利润（利润 > 0 时有效；亏损股 fallback 到 iwencai 静态值）
-> - PB = 总市值 ÷ 净资产（取最近有数据的财报期，fallback 到 iwencai 静态值）
-> - 净资产字段由 `_NET_ASSETS_CANDIDATES` 列表自动探测，iwencai 重抓后无需手动配置
+> **MKT_KEY 自动探测**：`build_html.py` 会自动从数据中找到带日期后缀的字段名（如 `港股@总市值[20260309]`），
+> 重新抓取后日期变化无需手动更新任何常量。
 
-### 市场数据注入（级联更新）
-
-`build_html.py` 在运行时自动加载 `hk_stocks_market.json`，用最新数据覆盖 iwencai 原始值，
-然后从头重新计算所有派生列。因此更新行情后，以下链式计算自动刷新：
+### 级联计算
 
 ```
-mkt_cap（最新价×总股本）
+mkt_cap（最新价×总股本，来自iwencai）
   → 股东收益率 = TTMFCF / (mkt_cap + 净现金)
-    → 低估排名（非金融股）
-      → 综合排名
+    → 低估排名（非金融股）→ 综合排名
 
-PE(TTM)
-  → 低估排名（金融股）
-    → 综合排名
+PE(TTM)（动态计算）
+  → 低估排名（金融股）→ 综合排名
 ```
 
 ---

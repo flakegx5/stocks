@@ -7,15 +7,25 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(BASE_DIR, 'hk_stocks_data_new.json'), encoding='utf-8') as f:
     raw = json.load(f)
 
-# ---- 易变市场字段 key（iwencai 原始 key，在此集中定义，避免多处硬编码日期）----
-# 当重新从 iwencai 抓数据后，若日期 suffix 发生变化，只需在此处更新。
-# update_market.py 用 AKShare 覆盖这些字段，compute_phase1 和 FIXED_COLS 均引用此处。
+# ---- 易变市场字段 key（iwencai 原始 key，在此集中定义）----
+# 日期后缀字段（总市值、PE、PB、总股本）每次重抓后日期会变，用 _autodetect_key 自动匹配，
+# 无需每次手动更新硬编码日期。
+def _autodetect_key(rows, prefix, fallback):
+    """扫描第一行数据，找到以 prefix 开头的 key；找不到则返回 fallback。"""
+    if rows:
+        for k in rows[0].keys():
+            if k.startswith(prefix):
+                return k
+    return fallback
+
+_rows0 = raw.get('rows', [])
 MKT_KEY_PRICE  = '港股@最新价'
 MKT_KEY_CHG    = '港股@最新涨跌幅'
-MKT_KEY_MKTCAP = '港股@总市值[20260309]'
-MKT_KEY_PE     = '港股@市盈率(pe,ttm)[20260306]'
-MKT_KEY_PB     = '港股@市净率(pb)[20260309]'
-MKT_KEY_SHARES = '港股@总股本[20260309]'
+MKT_KEY_MKTCAP = _autodetect_key(_rows0, '港股@总市值[',         '港股@总市值[20260309]')
+MKT_KEY_PE     = _autodetect_key(_rows0, '港股@市盈率(pe,ttm)[', '港股@市盈率(pe,ttm)[20260306]')
+MKT_KEY_PB     = _autodetect_key(_rows0, '港股@市净率(pb)[',     '港股@市净率(pb)[20260309]')
+MKT_KEY_SHARES = _autodetect_key(_rows0, '港股@总股本[',          '港股@总股本[20260309]')
+print(f"📊 MKT keys: MKTCAP={MKT_KEY_MKTCAP!r}  SHARES={MKT_KEY_SHARES!r}")
 
 # ---- 净资产字段候选（按优先级，iwencai 重抓后自动匹配，无需手动确认）----
 # PE/PB 动态计算时，净资产从此列表中自动探测实际存在的字段名

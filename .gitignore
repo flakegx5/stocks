@@ -21,3 +21,10 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# 登录凭证（含敏感 token，不应提交）
+iwencai_cookies.json
+iwencai_session.json
+
+# 调试响应文件
+debug_responses/

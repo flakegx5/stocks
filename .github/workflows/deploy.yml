@@ -18,7 +18,7 @@ jobs:
           port: 22
           timeout: 30s
           command_timeout: 5m
-          fingerprint: SHA256:VHpTQjlvS4AZQSb9ENVqQRAWrKrVfqRlxPXVjmrb8xM
+          fingerprint: d9:11:db:eb:9e:6b:f8:14:ae:18:3c:a3:ad:df:13:f4
           script: |
             cd /home/ubuntu/stocks
             git pull origin main

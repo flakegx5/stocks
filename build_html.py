@@ -721,6 +721,28 @@ ROIC_END_IDX    = ROIC_START_IDX + N_PERIODS - 1                # = 145 (last RO
 TTMROE_IDX_PY   = 10 + COMPUTED_COL_DEFS.index('TTMROE')   # = 18
 TTMROIC_IDX_PY  = 10 + COMPUTED_COL_DEFS.index('TTMROIC')  # = 19
 
+# ---- Write data.js (all build-time data + constants, loaded by index.html) ----
+_data_bundle = {
+    'headers': headers,
+    'rows': rows,
+    'cols': cols_meta,
+    'periods': [label for _, label in PERIOD_DATES],
+    'metrics': [disp for _, disp in PERIOD_METRICS],
+    'roe_idx': ROE_2024_IDX,
+    'profit_idx': PROFIT_2024_IDX,
+    'cf_idx': CF_2024_IDX,
+    'roic_start': ROIC_START_IDX,
+    'roic_end': ROIC_END_IDX,
+    'ttmroe_idx': TTMROE_IDX_PY,
+    'ttmroic_idx': TTMROIC_IDX_PY,
+    'metrics_hidden': sorted(METRICS_HIDE_DEFAULT),
+    'computed_hidden': sorted(COMPUTED_HIDE_DEFAULT),
+    'industry_html': industry_opts,
+    'row_count': len(rows),
+}
+with open(os.path.join(BASE_DIR, 'data.js'), 'w', encoding='utf-8') as f:
+    f.write('window.STOCK_DATA=' + json.dumps(_data_bundle, ensure_ascii=False, separators=(',', ':')) + ';')
+
 html = f'''<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -895,7 +917,7 @@ tbody tr:nth-child(odd) td:nth-child(3) {{ background: #fff; }}
 
 <div class="page-header">
   <h1>港股数据</h1>
-  <span class="subtitle">市值≥50亿港元 · 共{len(rows)}只（已去除人民币柜台/B股重复）· 数据来源：问财</span>
+  <span class="subtitle" id="subtitleText">市值≥50亿港元 · 数据来源：问财</span>
 </div>
 
 <div class="controls">
@@ -908,7 +930,6 @@ tbody tr:nth-child(odd) td:nth-child(3) {{ background: #fff; }}
   </select>
   <select id="industryFilter">
     <option value="">所有行业</option>
-    {industry_opts}
   </select>
   <span class="sep">|</span>
   <div class="col-picker-wrap">
@@ -951,18 +972,24 @@ tbody tr:nth-child(odd) td:nth-child(3) {{ background: #fff; }}
 </div>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="data.js"></script>
 <script>
-const DATA = {data_js};
-const COLS = {cols_meta_js};
-const PERIODS = {periods_js};
-const METRICS = {metrics_js};
-const ROE_IDX = {ROE_2024_IDX};
-const PROFIT_IDX = {PROFIT_2024_IDX};
-const CF_IDX = {CF_2024_IDX};
-const ROIC_START   = {ROIC_START_IDX};   // first ROIC period col
-const ROIC_END     = {ROIC_END_IDX};     // last  ROIC period col (inclusive, {N_PERIODS} periods)
-const TTMROE_IDX   = {TTMROE_IDX_PY};   // computed TTMROE col
-const TTMROIC_IDX  = {TTMROIC_IDX_PY};  // computed TTMROIC col
+const _d = window.STOCK_DATA;
+const DATA    = {{headers: _d.headers, rows: _d.rows}};
+const COLS    = _d.cols;
+const PERIODS = _d.periods;
+const METRICS = _d.metrics;
+const ROE_IDX    = _d.roe_idx;
+const PROFIT_IDX = _d.profit_idx;
+const CF_IDX     = _d.cf_idx;
+const ROIC_START = _d.roic_start;   // first ROIC period col
+const ROIC_END   = _d.roic_end;     // last ROIC period col
+const TTMROE_IDX  = _d.ttmroe_idx;  // computed TTMROE col
+const TTMROIC_IDX = _d.ttmroic_idx; // computed TTMROIC col
+// Inject dynamic content from data.js
+document.getElementById('industryFilter').insertAdjacentHTML('beforeend', _d.industry_html);
+document.getElementById('subtitleText').textContent =
+  `市值≥50亿港元 · 共${{_d.row_count}}只（已去除人民币柜台/B股重复）· 数据来源：问财`;
 
 // Percentage-type metrics — do NOT convert to 亿
 const PCT_METRICS = new Set(['净利润同比', 'ROE', 'ROIC']);
@@ -1085,8 +1112,8 @@ function getStockType(row) {{
 }}
 
 // ---- State ----
-const METRICS_DEFAULT_HIDDEN   = new Set({json.dumps(sorted(METRICS_HIDE_DEFAULT),   ensure_ascii=False)});
-const COMPUTED_DEFAULT_HIDDEN  = new Set({json.dumps(sorted(COMPUTED_HIDE_DEFAULT),  ensure_ascii=False)});
+const METRICS_DEFAULT_HIDDEN   = new Set(_d.metrics_hidden);
+const COMPUTED_DEFAULT_HIDDEN  = new Set(_d.computed_hidden);
 let sortCol = -1, sortDir = 'asc';
 let visiblePeriods = new Set(PERIODS);
 let visibleMetrics = new Set(METRICS.filter(m => !METRICS_DEFAULT_HIDDEN.has(m)));
@@ -1469,7 +1496,7 @@ render();
 </body>
 </html>'''
 
-with open(os.path.join(BASE_DIR, 'hk_stocks.html'), 'w', encoding='utf-8') as f:
+with open(os.path.join(BASE_DIR, 'index.html'), 'w', encoding='utf-8') as f:
     f.write(html)
 
 print(f"HTML generated: {len(html):,} chars")

@@ -27,18 +27,19 @@ git push
 - **`hk_stocks_market.json`** — 易变市场数据（AKShare 每日更新），由 `update_market.py` 生成
 
 ### 脚本
-- **`build_html.py`** — 唯一需要编辑的核心文件（约1300行）。加载两个 JSON，注入市场数据，计算所有派生列，输出 HTML
-- **`update_market.py`** — 每日行情更新脚本。从 AKShare 获取最新价/涨跌幅，计算总市值（= 最新价 × 总股本），保存至 `hk_stocks_market.json`
+- **`build_html.py`** — 唯一需要编辑的核心文件（约1300行）。加载两个 JSON，注入市场数据，计算所有派生列，输出 `index.html` + `data.js`
+- **`scrape_iwencai_xhr.py`** — 自动抓取 iwencai 港股数据（Playwright），支持 `--login/--debug/--build`
+- **`update_market.py`** — 每日行情更新脚本。从 AKShare 获取最新价/涨跌幅，计算总市值，保存至 `hk_stocks_market.json`
 - **`daily_update.sh`** — 每日自动化脚本：依次运行 `update_market.py` → `build_html.py`，可选 `--push` 自动提交
-- **`scraper_browser.js`** — 浏览器控制台抓取脚本（每次抓取粘贴到 DevTools）
-- **`run_server.sh`** — 启动数据接收服务器的脚本
-- **`recv_server.py`** — 数据接收服务器（监听 9876 端口，保存 JSON）
 
-### 输出
-- **`hk_stocks.html`** — 由 `build_html.py` 生成，不在 git 中
+### 输出（前后端分离架构）
+- **`index.html`** — 静态模板（~29KB，CSS + JS 逻辑），在 git 中
+- **`data.js`** — 构建时数据（~1.6MB，所有表格数据+计算常量），在 git 中
+- `index.html` 通过 `<script src="data.js">` 加载数据，本地双击可直接打开
 
 生成命令：`python3 build_html.py`
-输出：`hk_stocks.html`（约1.5MB，自包含，直接浏览器打开）
+输出：`index.html`（~29KB）+ `data.js`（~1.6MB）
+在线访问：https://flakegx5.github.io/stocks/
 
 ---
 

@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>港股数据 · 市值50亿+</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 13px; background: #f5f6f8; color: #1a1a1a; }
+
+/* Header */
+.page-header { background: #1a2332; color: #fff; padding: 14px 20px; display: flex;
+  align-items: center; gap: 16px; position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.page-header h1 { margin: 0; font-size: 17px; font-weight: 600; }
+.page-header .subtitle { font-size: 11px; color: #9ab; }
+
+/* Controls */
+.controls { background: #fff; border-bottom: 1px solid #e0e3ea; padding: 8px 20px;
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  position: sticky; top: 49px; z-index: 99; }
+.controls input[type=search], .controls select {
+  height: 30px; border: 1px solid #d0d3da; border-radius: 4px; padding: 0 10px;
+  font-size: 12px; outline: none; background: #fafbfc; }
+.controls input[type=search] { width: 180px; }
+.controls input[type=search]:focus, .controls select:focus {
+  border-color: #4a7fff; box-shadow: 0 0 0 2px rgba(74,127,255,.15); }
+.controls select { max-width: 140px; }
+.btn { height: 30px; padding: 0 12px; border: 1px solid #d0d3da; border-radius: 4px;
+  background: #fff; cursor: pointer; font-size: 12px; color: #444; white-space: nowrap; }
+.btn:hover { background: #f0f2f5; }
+.sep { color: #ccc; font-size: 18px; line-height: 1; }
+
+/* Column picker */
+.col-picker-wrap { position: relative; }
+#colPickerBtn { background: #fff; }
+#colPickerBtn.active { background: #1a2332; color: #fff; border-color: #1a2332; }
+.col-picker {
+  display: none; position: fixed; top: 0; right: 0; width: 420px; height: 100vh;
+  background: #fff; border-left: 1px solid #d0d3da; z-index: 200;
+  box-shadow: -4px 0 20px rgba(0,0,0,.15); flex-direction: column;
+  overflow: hidden;
+}
+.col-picker.open { display: flex; }
+.cp-header { background: #1a2332; color: #fff; padding: 14px 16px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-weight: 600; font-size: 14px; flex-shrink: 0; }
+.cp-close { background: none; border: none; color: #cde; cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 4px; }
+.cp-close:hover { color: #fff; }
+.cp-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+.cp-group { border-bottom: 1px solid #edf0f5; }
+.cp-group-hdr { background: #f5f7fa; padding: 8px 16px; display: flex;
+  align-items: center; gap: 8px; position: sticky; top: 0; z-index: 1; }
+.cp-group-name { font-weight: 600; font-size: 12px; color: #1a2332; flex: 1; }
+.cp-group-btn { font-size: 11px; color: #4a7fff; cursor: pointer; border: none;
+  background: none; padding: 2px 6px; }
+.cp-group-btn:hover { text-decoration: underline; }
+.cp-cols { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px 12px 10px; }
+.cp-col { display: flex; align-items: center; gap: 5px; cursor: pointer;
+  font-size: 12px; color: #333; padding: 3px 6px; border-radius: 3px;
+  white-space: nowrap; min-width: 120px; }
+.cp-col:hover { background: #f0f4ff; }
+.cp-col input { cursor: pointer; margin: 0; flex-shrink: 0; }
+.cp-col.locked { color: #aaa; cursor: default; }
+.cp-overlay { display: none; position: fixed; inset: 0; z-index: 199; }
+.cp-overlay.open { display: block; }
+
+/* Summary */
+.summary-bar { background: #eef1f7; border-bottom: 1px solid #d8dbe5;
+  padding: 5px 20px; font-size: 12px; color: #555; display: flex; gap: 20px; flex-wrap: wrap; }
+.summary-bar strong { color: #1a2332; }
+
+/* Table wrapper */
+.table-wrap { overflow: auto; height: calc(100vh - 148px); }
+
+/* Table */
+table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+thead th {
+  position: sticky; top: 0; z-index: 10;
+  background: #1e2d42; color: #dde4ef;
+  padding: 0 8px; height: 44px; white-space: nowrap;
+  font-weight: 500; font-size: 12px; border-right: 1px solid #2a3d58;
+  cursor: pointer; user-select: none; vertical-align: middle; text-align: center;
+}
+thead th:hover { background: #253650; }
+thead th.sort-asc::after { content: ' ▲'; color: #6af; font-size: 10px; }
+thead th.sort-desc::after { content: ' ▼'; color: #6af; font-size: 10px; }
+thead th .th-metric { display: block; font-weight: 600; }
+thead th .th-unit  { display: block; font-size: 9px; color: #7bc; margin-top: 1px; font-weight: 400; }
+thead th .th-date  { display: block; font-size: 10px; color: #8ab; margin-top: 1px; }
+
+/* Sticky cols in header */
+thead th:nth-child(1) { position: sticky; left: 0; z-index: 20; min-width: 48px; max-width: 48px; }
+thead th:nth-child(2) { position: sticky; left: 48px; z-index: 20; min-width: 80px; max-width: 80px; }
+thead th:nth-child(3) { position: sticky; left: 128px; z-index: 20; min-width: 110px; max-width: 110px; }
+
+/* Column group colors — by metric type */
+th[data-group="基本信息"]   { background: #1a3055; }
+th[data-group="归母净利润"] { background: #1e3d28; }
+th[data-group="净利润同比"] { background: #1a3530; }
+th[data-group="总现金"]     { background: #1e2d3a; }
+th[data-group="流动资产"]   { background: #2d2035; }
+th[data-group="总负债"]     { background: #28203a; }
+th[data-group="短期借款"]   { background: #221f3a; }
+th[data-group="长期借款"]   { background: #1c2038; }
+th[data-group="权益合计"]   { background: #1e2a38; }
+th[data-group="ROE"]        { background: #2a1e20; }
+th[data-group="ROIC"]       { background: #282020; }
+th[data-group="经营现金流"] { background: #261e22; }
+th[data-group="投资现金流"] { background: #241e24; }
+th[data-group="资本支出"]   { background: #1e2438; }
+th[data-group="融资现金流"] { background: #22263a; }
+th[data-group="年度分红"]   { background: #2a2018; }
+th[data-group="股份回购"]   { background: #28221a; }
+th[data-group="支付股息"]   { background: #261e1c; }
+
+/* Body */
+tbody tr:nth-child(even) { background: #f8f9fb; }
+tbody tr:hover td { background: #e8eef8 !important; }
+td {
+  padding: 0 8px; height: 32px; white-space: nowrap;
+  border-right: 1px solid #e8eaef; border-bottom: 1px solid #e8eaef;
+  text-align: right; vertical-align: middle; font-size: 12px;
+}
+td:nth-child(1), td:nth-child(2), td:nth-child(3) { text-align: left; }
+td.neg { color: #d04020; }
+td.pos { color: #206840; }
+
+/* Sticky body cells */
+td:nth-child(1) {
+  position: sticky; left: 0; z-index: 5; background: inherit;
+  min-width: 48px; max-width: 48px; text-align: center; color: #888;
+  border-right: 2px solid #e0e3ea;
+}
+td:nth-child(2) {
+  position: sticky; left: 48px; z-index: 5; background: inherit;
+  min-width: 80px; max-width: 80px; font-family: monospace; color: #555;
+}
+td:nth-child(3) {
+  position: sticky; left: 128px; z-index: 5; background: inherit;
+  min-width: 110px; max-width: 110px; font-weight: 500; color: #1a2332;
+  border-right: 2px solid #c0c8d8;
+}
+tbody tr:nth-child(even) td:nth-child(1),
+tbody tr:nth-child(even) td:nth-child(2),
+tbody tr:nth-child(even) td:nth-child(3) { background: #f8f9fb; }
+tbody tr:nth-child(odd) td:nth-child(1),
+tbody tr:nth-child(odd) td:nth-child(2),
+tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
+
+/* Export button */
+.btn-export { background: #1a5c30; color: #fff; border-color: #1a5c30; }
+.btn-export:hover { background: #236b3a; }
+/* Filter bar */
+.filter-bar { background: #eef3ff; border-bottom: 1px solid #c8d4f0;
+  padding: 8px 20px; display: none; flex-wrap: wrap; gap: 12px; align-items: center; }
+.filter-bar.open { display: flex; }
+.filter-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+.filter-item label { color: #334; white-space: nowrap; font-weight: 500; }
+.filter-item select { height: 26px; border: 1px solid #b0c0e0; border-radius: 4px;
+  padding: 0 4px; font-size: 12px; background: #fff; }
+.filter-item input[type=number] { width: 72px; height: 26px; border: 1px solid #b0c0e0;
+  border-radius: 4px; padding: 0 6px; font-size: 12px; }
+.filter-item .unit { color: #778; font-size: 11px; }
+.filter-active { color: #e05020; font-weight: 600; }
+#clearFiltersBtn { color: #e05020; border-color: #e05020; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>港股数据</h1>
+  <span class="subtitle" id="subtitleText">市值≥50亿港元 · 数据来源：问财</span>
+</div>
+
+<div class="controls">
+  <input type="search" id="searchBox" placeholder="搜索代码/名称…">
+  <select id="stockTypeFilter">
+    <option value="">所有类型</option>
+    <option value="金融股">金融股</option>
+    <option value="非金融股">非金融股</option>
+    <option value="其他">其他</option>
+  </select>
+  <select id="industryFilter">
+    <option value="">所有行业</option>
+  </select>
+  <span class="sep">|</span>
+  <div class="col-picker-wrap">
+    <button class="btn" id="colPickerBtn">列设置 ▼</button>
+  </div>
+  <span class="sep">|</span>
+  <button class="btn" id="clearSort">清除排序</button>
+  <button class="btn" id="resetView">重置视图</button>
+  <span class="sep">|</span>
+  <button class="btn" id="filterToggleBtn">筛选 ▼</button>
+  <span class="sep">|</span>
+  <button class="btn btn-export" id="exportBtn">导出 Excel</button>
+</div>
+
+<div class="filter-bar" id="filterBar"></div>
+
+<div class="summary-bar">
+  <span>显示 <strong id="sRowCount">-</strong> 只</span>
+  <span>总市值 <strong id="sTotalMkt">-</strong></span>
+  <span>平均PE(TTM) <strong id="sAvgPE">-</strong></span>
+  <span>平均PB <strong id="sAvgPB">-</strong></span>
+  <span>平均TTMROE <strong id="sAvgROE">-</strong></span>
+</div>
+
+<!-- Column picker side panel -->
+<div class="cp-overlay" id="cpOverlay"></div>
+<div class="col-picker" id="colPicker">
+  <div class="cp-header">
+    <span>列设置</span>
+    <button class="cp-close" id="cpClose">✕</button>
+  </div>
+  <div class="cp-body" id="cpBody"></div>
+</div>
+
+<div class="table-wrap" id="tableWrap">
+  <table id="mainTable">
+    <thead id="tableHead"></thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="data.js"></script>
+<script>
+const _d = window.STOCK_DATA;
+const DATA    = {headers: _d.headers, rows: _d.rows};
+const COLS    = _d.cols;
+const PERIODS = _d.periods;
+const METRICS = _d.metrics;
+const ROE_IDX    = _d.roe_idx;
+const PROFIT_IDX = _d.profit_idx;
+const CF_IDX     = _d.cf_idx;
+const ROIC_START = _d.roic_start;   // first ROIC period col
+const ROIC_END   = _d.roic_end;     // last ROIC period col
+const TTMROE_IDX  = _d.ttmroe_idx;  // computed TTMROE col
+const TTMROIC_IDX = _d.ttmroic_idx; // computed TTMROIC col
+// Inject dynamic content from data.js
+document.getElementById('industryFilter').insertAdjacentHTML('beforeend', _d.industry_html);
+document.getElementById('subtitleText').textContent =
+  `市值≥50亿港元 · 共${_d.row_count}只（已去除人民币柜台/B股重复）· 数据来源：问财`;
+
+// Percentage-type metrics — do NOT convert to 亿
+const PCT_METRICS = new Set(['净利润同比', 'ROE', 'ROIC']);
+
+// Computed 亿 cols: TTM净利(11), 现金(13-17), 现金流(20-27), 净现金/有息负债/FCF(28-30)
+const COMPUTED_YI_COLS = new Set([11,13,14,15,16,17,18,21,22,23,24,25,26,27,28,29,30,31]);
+const COMPUTED_COL_NAMES = [
+  '最新财报季','TTM归母净利润','TTM净利同比',
+  '最新总现金','最新流动资产','最新总负债','最新短期借款','最新长期借款','最新权益合计',
+  'TTMROE','TTMROIC',
+  'TTM经营现金流','TTM投资现金流','TTM资本支出','TTM融资现金流','TTM股份回购','TTM支付股息',
+  '预期25年度分红','预期25股东回报',
+  '净现金','有息负债','TTMFCF','股东收益率','股东回报分配率',
+  '低估排序分','成长排序分','质量排序分','股东回报排序分','综合分数',
+];
+const FILTER_COLS = [
+  {idx:11, name:'TTM归母净利润',  unit:'亿', isYi:true},
+  {idx:12, name:'TTM净利同比',    unit:'%',  isYi:false},
+  {idx:TTMROE_IDX,  name:'TTMROE',  unit:'%', isYi:false},
+  {idx:TTMROIC_IDX, name:'TTMROIC', unit:'%', isYi:false},
+  {idx:18, name:'最新权益合计',   unit:'亿', isYi:true},
+  {idx:21, name:'TTM经营现金流',  unit:'亿', isYi:true},
+  {idx:22, name:'TTM投资现金流',  unit:'亿', isYi:true},
+  {idx:23, name:'TTM资本支出',    unit:'亿', isYi:true},
+  {idx:24, name:'TTM融资现金流',  unit:'亿', isYi:true},
+  {idx:27, name:'预期25年度分红', unit:'亿', isYi:true},
+  {idx:28, name:'预期25股东回报', unit:'亿', isYi:true},
+  {idx:29, name:'净现金',         unit:'亿', isYi:true},
+  {idx:30, name:'有息负债',       unit:'亿', isYi:true},
+  {idx:31, name:'TTMFCF',        unit:'亿', isYi:true},
+  {idx:32, name:'股东收益率',     unit:'%',  isYi:false},
+  {idx:33, name:'股东回报分配率', unit:'%',  isYi:false},
+  {idx:34, name:'低估排序分',     unit:'',   isYi:false},
+  {idx:35, name:'成长排序分',     unit:'',   isYi:false},
+  {idx:36, name:'质量排序分',     unit:'',   isYi:false},
+  {idx:37, name:'股东回报排序分', unit:'',   isYi:false},
+  {idx:38, name:'综合分数',       unit:'',   isYi:false},
+];
+
+// ---- Utility ----
+function parseNum(s) {
+  if (s === null || s === undefined || s === '--') return null;
+  s = String(s).replace(/,/g, '');
+  let m = 1;
+  if (s.endsWith('亿')) { m = 1e8; s = s.slice(0, -1); }
+  else if (s.endsWith('万')) { m = 1e4; s = s.slice(0, -1); }
+  const v = parseFloat(s);
+  return isNaN(v) ? null : v * m;
+}
+
+function fmtYi(n) {
+  // Pure number in 亿 units — no unit suffix (unit shown in column header)
+  const yi = n / 1e8;
+  if (Math.abs(yi) >= 1) return yi.toFixed(1);
+  return yi.toFixed(2);
+}
+
+function getColUnit(col) {
+  if (col.idx === 5) return '亿港元';
+  if (col.idx === 8) return '亿股';
+  if (COMPUTED_YI_COLS.has(col.idx)) return '亿';
+  if (col.idx === 12 || col.idx === TTMROE_IDX || col.idx === TTMROIC_IDX
+      || col.idx === 32 || col.idx === 33) return '%';
+  if (col.group !== '基本信息' && col.group !== '计算指标' && !PCT_METRICS.has(col.group)) return '亿';
+  return '';
+}
+
+function fmtCell(val, col) {
+  if (val === '--' || val === null || val === undefined) return '--';
+  if (col.idx === 6 || col.idx === 7) {  // PE / PB
+    const n = parseNum(String(val));
+    return n === null ? val : n.toFixed(1);
+  }
+  if (col.idx === 10) return val;  // 最新财报季: text as-is
+  if (col.idx === 12 || col.idx === TTMROE_IDX || col.idx === TTMROIC_IDX
+      || col.idx === 32 || col.idx === 33) {  // % cols: 1 decimal
+    const n = parseNum(String(val));
+    return n === null ? val : n.toFixed(1);
+  }
+  if (!getColUnit(col)) return val;  // ranking/composite: return as-is
+  const n = parseNum(String(val));
+  if (n === null) return val;
+  return fmtYi(n);
+}
+
+function fmtMktCap(v) {
+  if (v === null) return '--';
+  return fmtYi(v) + '亿';   // summary bar keeps unit
+}
+
+function fmtNum(v) {
+  if (v === null || v === undefined) return '--';
+  return fmtYi(v) + '亿';   // summary bar keeps unit
+}
+
+// ---- Stock type classification ----
+// 金融股: 行业 in {保险,其他金融,银行} OR (行业==综合企业 AND 名称含中信集团)
+// 非金融股: 非金融 AND 至少一期有ROIC数据
+// 其他: 其余
+
+function isJinRong(row) {
+  const ind = String(row[9]);
+  if (ind === '保险' || ind === '其他金融' || ind === '银行') return true;
+  if (ind === '综合企业' && String(row[2]).includes('中信股份')) return true;
+  return false;
+}
+
+function hasAnyROIC(row) {
+  for (let i = ROIC_START; i <= ROIC_END; i++) {
+    const v = row[i];
+    if (v !== '--' && v !== null && v !== undefined && v !== '') return true;
+  }
+  return false;
+}
+
+function getStockType(row) {
+  if (isJinRong(row)) return '金融股';
+  if (hasAnyROIC(row)) return '非金融股';
+  return '其他';
+}
+
+// ---- State ----
+const METRICS_DEFAULT_HIDDEN   = new Set(_d.metrics_hidden);
+const COMPUTED_DEFAULT_HIDDEN  = new Set(_d.computed_hidden);
+let sortCol = -1, sortDir = 'asc';
+let visiblePeriods = new Set(PERIODS);
+let visibleMetrics = new Set(METRICS.filter(m => !METRICS_DEFAULT_HIDDEN.has(m)));
+let visibleComputedCols = new Set(COMPUTED_COL_NAMES.filter(n => !COMPUTED_DEFAULT_HIDDEN.has(n)));
+let searchText = '';
+let filterIndustry = '';
+let filterStockType = '';
+let filters = {};   // {colIdx: {op, val}}
+let displayIndices = [];
+
+// ---- Column picker (2-D: periods × metrics) ----
+function buildColPicker() {
+  const body = document.getElementById('cpBody');
+
+  function makeSection(title, items, activeSet) {
+    const allChk = items.every(v => activeSet.has(v));
+    let html = `<div class="cp-group">
+      <div class="cp-group-hdr">
+        <span class="cp-group-name">${title}</span>
+        <button class="cp-group-btn" data-sec="${title}" data-a="all">全选</button>
+        <button class="cp-group-btn" data-sec="${title}" data-a="none">全不选</button>
+      </div><div class="cp-cols">`;
+    items.forEach(item => {
+      const chk = activeSet.has(item) ? 'checked' : '';
+      html += `<label class="cp-col"><input type="checkbox" data-sec="${title}" data-val="${item}" ${chk}> ${item}</label>`;
+    });
+    html += `</div></div>`;
+    return html;
+  }
+
+  // Computed cols section (individual checkboxes)
+  function makeComputedSection() {
+    let h = `<div class="cp-group"><div class="cp-group-hdr">
+      <span class="cp-group-name">计算指标</span>
+      <button class="cp-group-btn" data-sec="computed" data-a="all">全选</button>
+      <button class="cp-group-btn" data-sec="computed" data-a="none">全不选</button>
+      </div><div class="cp-cols">`;
+    COMPUTED_COL_NAMES.forEach(n => {
+      h += `<label class="cp-col"><input type="checkbox" data-sec="computed" data-val="${n}" ${visibleComputedCols.has(n)?'checked':''}> ${n}</label>`;
+    });
+    return h + `</div></div>`;
+  }
+
+  body.innerHTML =
+    makeComputedSection() +
+    makeSection('财报周期', PERIODS, visiblePeriods) +
+    makeSection('财务指标', METRICS, visibleMetrics);
+
+  body.querySelectorAll('input[data-sec]').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const sec = e.target.dataset.sec;
+      const set = sec === 'computed' ? visibleComputedCols
+                : sec === '财报周期' ? visiblePeriods : visibleMetrics;
+      if (e.target.checked) set.add(e.target.dataset.val);
+      else set.delete(e.target.dataset.val);
+      buildHeader(); buildBody();
+    });
+  });
+
+  body.querySelectorAll('.cp-group-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const sec = e.target.dataset.sec;
+      const set  = sec === 'computed' ? visibleComputedCols
+                 : sec === '财报周期' ? visiblePeriods : visibleMetrics;
+      const items = sec === 'computed' ? COMPUTED_COL_NAMES
+                  : sec === '财报周期' ? PERIODS : METRICS;
+      if (e.target.dataset.a === 'all') items.forEach(v => set.add(v));
+      else set.clear();
+      buildColPicker(); buildHeader(); buildBody();
+    });
+  });
+}
+
+function openColPicker() {
+  document.getElementById('colPicker').classList.add('open');
+  document.getElementById('cpOverlay').classList.add('open');
+  document.getElementById('colPickerBtn').classList.add('active');
+  buildColPicker();
+}
+
+function closeColPicker() {
+  document.getElementById('colPicker').classList.remove('open');
+  document.getElementById('cpOverlay').classList.remove('open');
+  document.getElementById('colPickerBtn').classList.remove('active');
+}
+
+document.getElementById('colPickerBtn').addEventListener('click', () => {
+  if (document.getElementById('colPicker').classList.contains('open')) closeColPicker();
+  else openColPicker();
+});
+document.getElementById('cpClose').addEventListener('click', closeColPicker);
+document.getElementById('cpOverlay').addEventListener('click', closeColPicker);
+
+// ---- Visible col defs ----
+function getVisibleColDefs() {
+  return COLS.filter(col => {
+    if (col.locked || col.group === '基本信息') return true;
+    if (col.group === '计算指标') return visibleComputedCols.has(col.name);
+    const pipe = col.fullName.indexOf('|');
+    const period = col.fullName.slice(pipe + 1);
+    return visibleMetrics.has(col.group) && visiblePeriods.has(period);
+  });
+}
+
+// ---- Build header ----
+function buildHeader() {
+  const thead = document.getElementById('tableHead');
+  const tr = document.createElement('tr');
+  getVisibleColDefs().forEach(col => {
+    const th = document.createElement('th');
+    const pipe = col.fullName.indexOf('|');
+    let metric, date;
+    if (pipe >= 0) {
+      metric = col.fullName.slice(0, pipe);
+      date = col.fullName.slice(pipe + 1);
+    } else {
+      metric = col.name; date = '';
+    }
+    const unit = getColUnit(col);
+    const unitHtml = unit ? `<span class="th-unit">${unit}</span>` : '';
+    th.innerHTML = `<span class="th-metric">${metric}</span>${unitHtml}${date ? `<span class="th-date">${date}</span>` : ''}`;
+    th.dataset.colidx = col.idx;
+    th.dataset.group = col.group;
+    if (String(sortCol) === String(col.idx)) {
+      th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+    th.addEventListener('click', () => onSortClick(col.idx));
+    tr.appendChild(th);
+  });
+  thead.innerHTML = '';
+  thead.appendChild(tr);
+}
+
+// ---- Build body ----
+function buildBody() {
+  const colDefs = getVisibleColDefs();
+  let html = '';
+  displayIndices.forEach((ri, rowPos) => {
+    const row = DATA.rows[ri];
+    html += `<tr>`;
+    colDefs.forEach((col, pos) => {
+      const rawVal = col.idx === 0 ? (rowPos + 1) : (row[col.idx] ?? '--');
+      let cls = '';
+      if (pos >= 3) {
+        const n = parseNum(String(rawVal));
+        if (n !== null && n < 0) cls = ' class="neg"';
+        else if (n !== null && n > 0 && col.idx >= 4) cls = ' class="pos"';
+      }
+      const displayVal = col.idx === 0 ? rawVal : fmtCell(rawVal, col);
+      html += `<td${cls}>${displayVal}</td>`;
+    });
+    html += '</tr>';
+  });
+  document.getElementById('tableBody').innerHTML = html;
+}
+
+// ---- Filter & Sort ----
+function applyFilters() {
+  let indices = DATA.rows.map((_, i) => i);
+  if (filterStockType) indices = indices.filter(i => getStockType(DATA.rows[i]) === filterStockType);
+  if (filterIndustry) indices = indices.filter(i => DATA.rows[i][9] === filterIndustry);
+  if (searchText) {
+    const t = searchText.toLowerCase();
+    indices = indices.filter(i =>
+      String(DATA.rows[i][1]).toLowerCase().includes(t) ||
+      String(DATA.rows[i][2]).toLowerCase().includes(t)
+    );
+  }
+  // Computed column filters
+  Object.entries(filters).forEach(([idx, f]) => {
+    const ci = parseInt(idx);
+    const fc = FILTER_COLS.find(c => c.idx === ci);
+    const threshold = fc?.isYi ? f.val * 1e8 : f.val;
+    indices = indices.filter(i => {
+      const v = parseNum(String(DATA.rows[i][ci]));
+      if (v === null) return false;
+      if (f.op === '>')  return v > threshold;
+      if (f.op === '>=') return v >= threshold;
+      if (f.op === '<')  return v < threshold;
+      if (f.op === '<=') return v <= threshold;
+      return true;
+    });
+  });
+  if (sortCol !== -1) {
+    indices.sort((a, b) => {
+      const ci = parseInt(sortCol);
+      const va = parseNum(String(DATA.rows[a][ci]));
+      const vb = parseNum(String(DATA.rows[b][ci]));
+      if (va === null && vb === null) return 0;
+      if (va === null) return 1;
+      if (vb === null) return -1;
+      return sortDir === 'asc' ? va - vb : vb - va;
+    });
+  } else {
+    // Default: sort by stock code ascending
+    indices.sort((a, b) => String(DATA.rows[a][1]).localeCompare(String(DATA.rows[b][1])));
+  }
+  displayIndices = indices;
+}
+
+function onSortClick(colidx) {
+  const ci = String(colidx);
+  if (String(sortCol) === ci) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortCol = colidx;
+    sortDir = 'desc';
+  }
+  applyFilters();
+  buildHeader();
+  buildBody();
+  updateSummary();
+}
+
+// ---- Summary ----
+function updateSummary() {
+  document.getElementById('sRowCount').textContent = displayIndices.length;
+  let totalMkt = 0, totalPE = 0, cPE = 0, totalPB = 0, cPB = 0, totalROE = 0, cROE = 0;
+  displayIndices.forEach(i => {
+    const r = DATA.rows[i];
+    const mkt = parseNum(r[5]); if (mkt && mkt > 0) totalMkt += mkt;
+    const pe = parseNum(r[6]);  if (pe && pe > 0 && pe < 1000) { totalPE += pe; cPE++; }
+    const pb = parseNum(r[7]);  if (pb && pb > 0 && pb < 100)  { totalPB += pb; cPB++; }
+    const roe = parseNum(r[TTMROE_IDX]); if (roe !== null) { totalROE += roe; cROE++; }
+  });
+  document.getElementById('sTotalMkt').textContent = fmtMktCap(totalMkt || null);
+  document.getElementById('sAvgPE').textContent = cPE ? (totalPE/cPE).toFixed(1)+'x' : '--';
+  document.getElementById('sAvgPB').textContent = cPB ? (totalPB/cPB).toFixed(2)+'x' : '--';
+  document.getElementById('sAvgROE').textContent = cROE ? (totalROE/cROE).toFixed(1)+'%' : '--';
+}
+
+// ---- Export Excel ----
+function exportExcel() {
+  const colDefs = getVisibleColDefs();
+
+  // Header row: "指标 (单位) [周期]"
+  const headerRow = colDefs.map(col => {
+    const pipe = col.fullName.indexOf('|');
+    const name = pipe >= 0 ? col.fullName.slice(0, pipe) : col.name;
+    const date = pipe >= 0 ? col.fullName.slice(pipe + 1) : '';
+    const unit = getColUnit(col);
+    return name + (unit ? ` (${unit})` : '') + (date ? ` [${date}]` : '');
+  });
+
+  // Data rows: numbers as numeric, text as string
+  const dataRows = displayIndices.map((ri, rowPos) => {
+    const row = DATA.rows[ri];
+    return colDefs.map((col, pos) => {
+      if (col.idx === 0) return rowPos + 1;
+      const rawVal = row[col.idx] ?? '--';
+      const display = fmtCell(rawVal, col);
+      if (display === '--' || display === '') return '';
+      const n = parseFloat(display);
+      return isNaN(n) ? display : n;
+    });
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headerRow, ...dataRows]);
+  XLSX.utils.book_append_sheet(wb, ws, '港股数据');
+  XLSX.writeFile(wb, '港股数据.xlsx');
+}
+
+// ---- Filter bar ----
+function buildFilterBar() {
+  const bar = document.getElementById('filterBar');
+  let html = '';
+  FILTER_COLS.forEach(fc => {
+    const f = filters[fc.idx] || {};
+    html += `<div class="filter-item">
+      <label>${fc.name}</label>
+      <select data-fidx="${fc.idx}" class="f-op">
+        <option value="" ${!f.op ? 'selected' : ''}>—</option>
+        <option value=">"  ${f.op === '>'  ? 'selected' : ''}>&gt;</option>
+        <option value=">=" ${f.op === '>=' ? 'selected' : ''}>≥</option>
+        <option value="<"  ${f.op === '<'  ? 'selected' : ''}>&lt;</option>
+        <option value="<=" ${f.op === '<=' ? 'selected' : ''}>≤</option>
+      </select>
+      <input type="number" data-fidx="${fc.idx}" class="f-val"
+             value="${f.val !== undefined ? f.val : ''}" placeholder="0" step="any">
+      <span class="unit">${fc.unit}</span>
+    </div>`;
+  });
+  html += `<button class="btn" id="clearFiltersBtn">清除筛选</button>`;
+  bar.innerHTML = html;
+
+  bar.querySelectorAll('.f-op').forEach(sel => {
+    sel.addEventListener('change', () => updateFilter(parseInt(sel.dataset.fidx)));
+  });
+  bar.querySelectorAll('.f-val').forEach(inp => {
+    inp.addEventListener('input', () => updateFilter(parseInt(inp.dataset.fidx)));
+  });
+  bar.querySelector('#clearFiltersBtn').addEventListener('click', clearFilters);
+}
+
+function updateFilter(idx) {
+  const bar = document.getElementById('filterBar');
+  const opSel = bar.querySelector(`.f-op[data-fidx="${idx}"]`);
+  const valInp = bar.querySelector(`.f-val[data-fidx="${idx}"]`);
+  const op = opSel.value;
+  const val = parseFloat(valInp.value);
+  if (op && !isNaN(val)) {
+    filters[idx] = {op, val};
+  } else {
+    delete filters[idx];
+  }
+  updateFilterToggleStyle();
+  render();
+}
+
+function clearFilters() {
+  filters = {};
+  updateFilterToggleStyle();
+  buildFilterBar();
+  render();
+}
+
+function updateFilterToggleStyle() {
+  const btn = document.getElementById('filterToggleBtn');
+  const hasActive = Object.keys(filters).length > 0;
+  btn.classList.toggle('filter-active', hasActive);
+  btn.textContent = hasActive ? '筛选 ●' : '筛选 ▼';
+}
+
+function render() {
+  applyFilters();
+  buildHeader();
+  buildBody();
+  updateSummary();
+}
+
+// ---- Events ----
+document.getElementById('searchBox').addEventListener('input', e => {
+  searchText = e.target.value.trim();
+  render();
+});
+
+document.getElementById('stockTypeFilter').addEventListener('change', e => {
+  filterStockType = e.target.value;
+  render();
+});
+
+document.getElementById('industryFilter').addEventListener('change', e => {
+  filterIndustry = e.target.value;
+  render();
+});
+
+document.getElementById('clearSort').addEventListener('click', () => {
+  sortCol = -1; sortDir = 'asc';
+  render();
+});
+
+document.getElementById('filterToggleBtn').addEventListener('click', () => {
+  const bar = document.getElementById('filterBar');
+  const isOpen = bar.classList.toggle('open');
+  if (isOpen) buildFilterBar();
+});
+
+document.getElementById('resetView').addEventListener('click', () => {
+  sortCol = -1; sortDir = 'asc';
+  searchText = ''; filterIndustry = ''; filterStockType = '';
+  filters = {};
+  document.getElementById('searchBox').value = '';
+  document.getElementById('stockTypeFilter').value = '';
+  document.getElementById('industryFilter').value = '';
+  visiblePeriods = new Set(PERIODS);
+  visibleMetrics = new Set(METRICS.filter(m => !METRICS_DEFAULT_HIDDEN.has(m)));
+  visibleComputedCols = new Set(COMPUTED_COL_NAMES.filter(n => !COMPUTED_DEFAULT_HIDDEN.has(n)));
+  document.getElementById('filterBar').classList.remove('open');
+  updateFilterToggleStyle();
+  closeColPicker();
+  render();
+});
+
+document.getElementById('exportBtn').addEventListener('click', exportExcel);
+
+// ---- Init ----
+render();
+</script>
+</body>
+</html>

@@ -77,6 +77,8 @@ body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", 
 .cp-col:hover { background: #f0f4ff; }
 .cp-col input { cursor: pointer; margin: 0; flex-shrink: 0; }
 .cp-col.locked { color: #aaa; cursor: default; }
+.cp-sublabel { width: 100%; font-size: 10.5px; font-weight: 700; color: #4a6090;
+  padding: 6px 6px 2px; letter-spacing: 0.3px; text-transform: none; }
 .cp-overlay { display: none; position: fixed; inset: 0; z-index: 199; }
 .cp-overlay.open { display: block; }
 
@@ -320,12 +322,11 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
   </select>
   <span class="sep">|</span>
   <div class="col-picker-wrap">
-    <button class="btn" id="colPickerBtn">列设置 ▼</button>
+    <button class="btn" id="colPickerBtn">表头设置 ▼</button>
   </div>
   <span class="sep">|</span>
-  <button class="btn" id="resetView">重置</button>
-  <span class="sep">|</span>
   <button class="btn" id="filterToggleBtn">筛选 ▼</button>
+  <button class="btn" id="resetView">重置</button>
   <span class="sep">|</span>
   <button class="btn btn-export" id="exportBtn">导出 Excel</button>
   <span class="sep">|</span>
@@ -361,12 +362,11 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
 </div>
 
 <div class="summary-bar">
-  <span>显示 <strong id="sRowCount">-</strong> 只</span>
+  <span>显示 <strong id="sRowCount">-</strong> / 共 <strong id="sTotalCount">-</strong> 只 &nbsp;<span class="sb-meta">市值≥50亿港元 · 问财</span></span>
   <span>总市值 <strong id="sTotalMkt">-</strong></span>
   <span>平均PE(TTM) <strong id="sAvgPE">-</strong></span>
   <span>平均PB <strong id="sAvgPB">-</strong></span>
   <span>平均TTMROE <strong id="sAvgROE">-</strong></span>
-  <span class="sb-meta" id="subtitleText"></span>
 </div>
 
 <!-- Column picker side panel -->
@@ -509,8 +509,7 @@ const TTMROE_IDX  = _d.ttmroe_idx;  // computed TTMROE col
 const TTMROIC_IDX = _d.ttmroic_idx; // computed TTMROIC col
 // Inject dynamic content from data.js
 document.getElementById('industryFilter').insertAdjacentHTML('beforeend', _d.industry_html);
-document.getElementById('subtitleText').textContent =
-  `市值≥50亿港元 · 共${_d.row_count}只（已去除人民币柜台/B股重复）· 数据来源：问财`;
+document.getElementById('sTotalCount').textContent = _d.row_count;
 
 // Percentage-type metrics — do NOT convert to 亿
 const PCT_METRICS = new Set(['净利润同比', 'ROE', 'ROIC']);
@@ -567,7 +566,9 @@ function fmtCell(val, col) {
 
 function fmtMktCap(v) {
   if (v === null) return '--';
-  return fmtYi(v) + '亿';   // summary bar keeps unit
+  const yi = v / 1e8;
+  const s = Math.abs(yi) >= 1 ? yi.toFixed(1) : yi.toFixed(2);
+  return parseFloat(s).toLocaleString('zh-CN') + '亿';
 }
 
 function fmtNum(v) {
@@ -617,12 +618,21 @@ let filterStockType = '';
 let filters = {};   // {colIdx: {op, val}}
 let displayIndices = [];
 
+// ---- Computed col groups (for col picker) ----
+const COMPUTED_GROUPS = [
+  { label: '盈利', cols: ['最新财报季', 'TTM归母净利润', 'TTM净利同比'] },
+  { label: '回报率', cols: ['TTMROE', 'TTMROIC', '股东收益率', '股东回报分配率'] },
+  { label: '现金流', cols: ['TTM经营现金流', 'TTM投资现金流', 'TTM资本支出', 'TTM融资现金流', 'TTMFCF'] },
+  { label: '资产负债', cols: ['最新总现金', '最新流动资产', '最新总负债', '最新短期借款', '最新长期借款', '最新权益合计', '净现金', '有息负债'] },
+  { label: '分红回购', cols: ['TTM股份回购', 'TTM支付股息', '预期25年度分红', '预期25股东回报'] },
+  { label: '排名', cols: ['低估排名', '成长排名', '质量排名', '股东回报排名', '综合分数', '综合排名'] },
+];
+
 // ---- Column picker (2-D: periods × metrics) ----
 function buildColPicker() {
   const body = document.getElementById('cpBody');
 
   function makeSection(title, items, activeSet) {
-    const allChk = items.every(v => activeSet.has(v));
     let html = `<div class="cp-group">
       <div class="cp-group-hdr">
         <span class="cp-group-name">${title}</span>
@@ -637,15 +647,18 @@ function buildColPicker() {
     return html;
   }
 
-  // Computed cols section (individual checkboxes)
+  // Computed cols section — grouped by category
   function makeComputedSection() {
     let h = `<div class="cp-group"><div class="cp-group-hdr">
       <span class="cp-group-name">计算指标</span>
       <button class="cp-group-btn" data-sec="computed" data-a="all">全选</button>
       <button class="cp-group-btn" data-sec="computed" data-a="none">全不选</button>
       </div><div class="cp-cols">`;
-    COMPUTED_COL_NAMES.forEach(n => {
-      h += `<label class="cp-col"><input type="checkbox" data-sec="computed" data-val="${n}" ${visibleComputedCols.has(n)?'checked':''}> ${n}</label>`;
+    COMPUTED_GROUPS.forEach(grp => {
+      h += `<span class="cp-sublabel">${grp.label}</span>`;
+      grp.cols.forEach(n => {
+        h += `<label class="cp-col"><input type="checkbox" data-sec="computed" data-val="${n}" ${visibleComputedCols.has(n)?'checked':''}> ${n}</label>`;
+      });
     });
     return h + `</div></div>`;
   }

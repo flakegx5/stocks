@@ -142,11 +142,12 @@ COMPUTED_COL_DEFS = [
     'TTMFCF',         # idx 31: 亿（金融股为空）
     '股东收益率',     # idx 32: %（金融股为空）
     '股东回报分配率', # idx 33: %
-    '低估排序分',     # idx 34: 整数排名（越小越好）
-    '成长排序分',     # idx 35: 整数排名（越小越好）
-    '质量排序分',     # idx 36: 整数排名（越小越好）
-    '股东回报排序分', # idx 37: 整数排名（越小越好）
+    '低估排名',       # idx 34: 整数排名（越小越好）
+    '成长排名',       # idx 35: 整数排名（越小越好）
+    '质量排名',       # idx 36: 整数排名（越小越好）
+    '股东回报排名',   # idx 37: 整数排名（越小越好）
     '综合分数',       # idx 38: 加权综合（越小越好）
+    '综合排名',       # idx 39: 综合分数排名（越小越好，金融/非金融分队列）
 ]
 
 # Period metrics hidden by default (replaced by computed "最新" cols)
@@ -161,6 +162,7 @@ METRICS_HIDE_DEFAULT = {
 COMPUTED_HIDE_DEFAULT = {
     'TTM股份回购', 'TTM支付股息', '预期25年度分红',
     '最新总现金', '最新流动资产', '最新总负债', '最新短期借款', '最新长期借款', '最新权益合计',
+    '综合分数',
 }
 
 # Build full column list
@@ -651,12 +653,23 @@ def compute_rankings(phase1_list):
         if None not in (u, g, q, r):
             composite[i] = round(u * 0.4 + g * 0.2 + q * 0.2 + r * 0.2, 1)
 
+    # ── 综合排名 ─────────────────────────────────────────────────────
+    # 金融/非金融分队列，按综合分数升序排名（越低越好），其他/综合分数为空则不参与
+    composite_rank = [None] * n
+    for queue in (jin, fei):
+        items = [(i, composite[i]) for i in queue if composite[i] is not None]
+        items.sort(key=lambda x: x[1])
+        rk = _competition_rank(items)
+        for i in queue:
+            if composite[i] is not None:
+                composite_rank[i] = rk.get(i)
+
     def _fr(v):  return '--' if v is None else str(int(v))
     def _fc(v):  return '--' if v is None else str(v)
 
     return [
         [_fr(undervalue[i]), _fr(growth[i]), _fr(quality[i]),
-         _fr(return_dist[i]), _fc(composite[i])]
+         _fr(return_dist[i]), _fc(composite[i]), _fr(composite_rank[i])]
         for i in range(n)
     ]
 
@@ -1013,7 +1026,7 @@ const COMPUTED_COL_NAMES = [
   'TTM经营现金流','TTM投资现金流','TTM资本支出','TTM融资现金流','TTM股份回购','TTM支付股息',
   '预期25年度分红','预期25股东回报',
   '净现金','有息负债','TTMFCF','股东收益率','股东回报分配率',
-  '低估排序分','成长排序分','质量排序分','股东回报排序分','综合分数',
+  '低估排名','成长排名','质量排名','股东回报排名','综合分数','综合排名',
 ];
 const FILTER_COLS = [
   {{idx:11, name:'TTM归母净利润',  unit:'亿', isYi:true}},
@@ -1032,11 +1045,12 @@ const FILTER_COLS = [
   {{idx:31, name:'TTMFCF',        unit:'亿', isYi:true}},
   {{idx:32, name:'股东收益率',     unit:'%',  isYi:false}},
   {{idx:33, name:'股东回报分配率', unit:'%',  isYi:false}},
-  {{idx:34, name:'低估排序分',     unit:'',   isYi:false}},
-  {{idx:35, name:'成长排序分',     unit:'',   isYi:false}},
-  {{idx:36, name:'质量排序分',     unit:'',   isYi:false}},
-  {{idx:37, name:'股东回报排序分', unit:'',   isYi:false}},
+  {{idx:34, name:'低估排名',       unit:'',   isYi:false}},
+  {{idx:35, name:'成长排名',       unit:'',   isYi:false}},
+  {{idx:36, name:'质量排名',       unit:'',   isYi:false}},
+  {{idx:37, name:'股东回报排名',   unit:'',   isYi:false}},
   {{idx:38, name:'综合分数',       unit:'',   isYi:false}},
+  {{idx:39, name:'综合排名',       unit:'',   isYi:false}},
 ];
 
 // ---- Utility ----

@@ -26,9 +26,6 @@ body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", 
   letter-spacing: 0.5px; }
 .page-header h1 .t-bi { color: #ffd60a; text-shadow: 0 0 12px rgba(255,214,10,.4); }
 .brand-tagline { font-size: 10.5px; color: #6a90b4; letter-spacing: 0.8px; }
-.page-header .subtitle { font-size: 11px; color: #7898c0; margin-left: auto;
-  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
-  padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
 
 /* Controls */
 .controls { background: #f8f9fc; border-bottom: 1px solid #dce2ee; padding: 8px 22px;
@@ -85,8 +82,9 @@ body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", 
 
 /* Summary */
 .summary-bar { background: #edf1f8; border-bottom: 1px solid #d4daea;
-  padding: 5px 22px; font-size: 12px; color: #506080; display: flex; gap: 22px; flex-wrap: wrap; }
+  padding: 5px 22px; font-size: 12px; color: #506080; display: flex; gap: 22px; flex-wrap: wrap; align-items: center; }
 .summary-bar strong { color: #162840; }
+.sb-meta { margin-left: auto; font-size: 11px; color: #90a0b8; }
 
 /* Table wrapper */
 .table-wrap { overflow: auto; height: calc(100vh - 157px); }
@@ -169,19 +167,55 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
 /* Export button */
 .btn-export { background: #155c2a; color: #fff; border-color: #155c2a; box-shadow: 0 1px 4px rgba(20,80,40,.2); }
 .btn-export:hover { background: #1c7035; border-color: #1c7035; }
-/* Filter bar */
-.filter-bar { background: #f0f4ff; border-bottom: 1px solid #c8d2ec;
-  padding: 8px 22px; display: none; flex-wrap: wrap; gap: 12px; align-items: center; }
-.filter-bar.open { display: flex; }
-.filter-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
-.filter-item label { color: #2c3a58; white-space: nowrap; font-weight: 500; }
-.filter-item select { height: 26px; border: 1px solid #aabad8; border-radius: 5px;
-  padding: 0 4px; font-size: 12px; background: #fff; }
-.filter-item input[type=number] { width: 72px; height: 26px; border: 1px solid #aabad8;
-  border-radius: 5px; padding: 0 6px; font-size: 12px; }
-.filter-item .unit { color: #6678a0; font-size: 11px; }
+/* Filter panel */
+.filter-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.25); z-index: 150; }
+.filter-overlay.open { display: block; }
+.filter-panel {
+  display: none; position: fixed; top: 108px; left: 22px;
+  width: 480px; max-width: calc(100vw - 44px);
+  background: #fff; border: 1px solid #d0d8ec; border-radius: 10px;
+  z-index: 151; flex-direction: column;
+  box-shadow: 0 8px 30px rgba(0,0,0,.18); overflow: hidden;
+}
+.filter-panel.open { display: flex; }
+.fp-hdr { background: linear-gradient(135deg,#0b1929,#162d48); color: #f0f4fa;
+  padding: 11px 16px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.fp-title { font-weight: 600; font-size: 13px; }
+.fp-close-btn { background: none; border: none; color: #9ab8d8; cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 2px 6px; }
+.fp-close-btn:hover { color: #fff; }
+.fp-body { padding: 14px 16px 12px; }
+.fp-add { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.fp-add select, .fp-add input[type=number] {
+  height: 30px; border: 1px solid #ced3df; border-radius: 6px;
+  padding: 0 8px; font-size: 12px; outline: none; background: #fff; }
+.fp-add select:focus, .fp-add input:focus { border-color: #4a7fff; }
+#fpCol { width: 165px; }
+#fpOp  { width: 58px; }
+#fpVal { width: 82px; }
+.fp-unit { font-size: 12px; color: #6678a0; min-width: 16px; }
+.fp-add-btn { height: 30px; padding: 0 14px; border: none; border-radius: 6px;
+  background: #1a4a7a; color: #fff; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.fp-add-btn:hover { background: #1e5a96; }
+.fp-add-btn:disabled { background: #c8d0e0; cursor: default; }
+.fp-sep { border: none; border-top: 1px solid #e4e8f0; margin: 12px 0 10px; }
+.fp-active { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+.fp-empty { font-size: 12px; color: #99a8c0; }
+.fp-chip { display: flex; align-items: center; gap: 4px; background: #e8f0fc;
+  border: 1px solid #b8ccf0; border-radius: 20px; padding: 3px 6px 3px 10px;
+  font-size: 12px; color: #1a3a68; }
+.fp-chip-rm { background: none; border: none; color: #6688aa; cursor: pointer;
+  font-size: 15px; line-height: 1; padding: 0 2px; }
+.fp-chip-rm:hover { color: #c03030; }
+.fp-footer { border-top: 1px solid #e4e8f0; padding: 10px 16px;
+  display: flex; justify-content: space-between; gap: 8px; background: #f8f9fc; }
+.fp-clear-btn { height: 30px; padding: 0 14px; border: 1px solid #c03030; border-radius: 6px;
+  background: #fff; color: #c03030; font-size: 12px; cursor: pointer; }
+.fp-clear-btn:hover { background: #fff0f0; }
+.fp-apply-btn { height: 30px; padding: 0 18px; border: none; border-radius: 6px;
+  background: #155c2a; color: #fff; font-size: 12px; cursor: pointer; font-weight: 600; }
+.fp-apply-btn:hover { background: #1c7035; }
 .filter-active { color: #c83010; font-weight: 600; }
-#clearFiltersBtn { color: #c83010; border-color: #c83010; }
 /* Rules button */
 .btn-rules { color: #fff; background: #1a4a7a; border-color: #1a4a7a; box-shadow: 0 1px 4px rgba(26,74,122,.25); }
 .btn-rules:hover { background: #1e5a96; border-color: #1e5a96; }
@@ -271,7 +305,6 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
       <span class="brand-tagline">多维量化比较 · 发现真实性价比</span>
     </div>
   </div>
-  <span class="subtitle" id="subtitleText">市值≥50亿港元 · 数据来源：问财</span>
 </div>
 
 <div class="controls">
@@ -290,8 +323,7 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
     <button class="btn" id="colPickerBtn">列设置 ▼</button>
   </div>
   <span class="sep">|</span>
-  <button class="btn" id="clearSort">清除排序</button>
-  <button class="btn" id="resetView">重置视图</button>
+  <button class="btn" id="resetView">重置</button>
   <span class="sep">|</span>
   <button class="btn" id="filterToggleBtn">筛选 ▼</button>
   <span class="sep">|</span>
@@ -300,7 +332,33 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
   <button class="btn btn-rules" id="rulesBtn">计算规则说明</button>
 </div>
 
-<div class="filter-bar" id="filterBar"></div>
+<div class="filter-overlay" id="filterOverlay"></div>
+<div class="filter-panel" id="filterPanel">
+  <div class="fp-hdr">
+    <span class="fp-title">筛选条件</span>
+    <button class="fp-close-btn" id="filterClose">✕</button>
+  </div>
+  <div class="fp-body">
+    <div class="fp-add">
+      <select id="fpCol"><option value="">选择指标…</option></select>
+      <select id="fpOp" disabled>
+        <option value=">=">≥</option>
+        <option value="<=">≤</option>
+        <option value=">">&gt;</option>
+        <option value="<">&lt;</option>
+      </select>
+      <input type="number" id="fpVal" placeholder="数值" disabled step="any">
+      <span id="fpUnit" class="fp-unit"></span>
+      <button class="fp-add-btn" id="fpAddBtn" disabled>添加</button>
+    </div>
+    <hr class="fp-sep">
+    <div class="fp-active" id="fpActive"><span class="fp-empty">暂无筛选条件</span></div>
+  </div>
+  <div class="fp-footer">
+    <button class="fp-clear-btn" id="fpClearBtn">清除全部</button>
+    <button class="fp-apply-btn" id="fpApplyBtn">确认并关闭</button>
+  </div>
+</div>
 
 <div class="summary-bar">
   <span>显示 <strong id="sRowCount">-</strong> 只</span>
@@ -308,6 +366,7 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
   <span>平均PE(TTM) <strong id="sAvgPE">-</strong></span>
   <span>平均PB <strong id="sAvgPB">-</strong></span>
   <span>平均TTMROE <strong id="sAvgROE">-</strong></span>
+  <span class="sb-meta" id="subtitleText"></span>
 </div>
 
 <!-- Column picker side panel -->
@@ -828,59 +887,94 @@ function exportExcel() {
   XLSX.writeFile(wb, '港股数据.xlsx');
 }
 
-// ---- Filter bar ----
-function buildFilterBar() {
-  const bar = document.getElementById('filterBar');
-  let html = '';
+// ---- Filter panel ----
+let pendingFilters = {};  // staged, applied on confirm
+
+function openFilterPanel() {
+  pendingFilters = Object.assign({}, filters);
+  // populate metric dropdown
+  const sel = document.getElementById('fpCol');
+  sel.innerHTML = '<option value="">选择指标…</option>';
   FILTER_COLS.forEach(fc => {
-    const f = filters[fc.idx] || {};
-    html += `<div class="filter-item">
-      <label>${fc.name}</label>
-      <select data-fidx="${fc.idx}" class="f-op">
-        <option value="" ${!f.op ? 'selected' : ''}>—</option>
-        <option value=">"  ${f.op === '>'  ? 'selected' : ''}>&gt;</option>
-        <option value=">=" ${f.op === '>=' ? 'selected' : ''}>≥</option>
-        <option value="<"  ${f.op === '<'  ? 'selected' : ''}>&lt;</option>
-        <option value="<=" ${f.op === '<=' ? 'selected' : ''}>≤</option>
-      </select>
-      <input type="number" data-fidx="${fc.idx}" class="f-val"
-             value="${f.val !== undefined ? f.val : ''}" placeholder="0" step="any">
-      <span class="unit">${fc.unit}</span>
-    </div>`;
+    const unit = fc.unit ? ` (${fc.unit})` : '';
+    sel.innerHTML += `<option value="${fc.idx}">${fc.name}${unit}</option>`;
   });
-  html += `<button class="btn" id="clearFiltersBtn">清除筛选</button>`;
-  bar.innerHTML = html;
-
-  bar.querySelectorAll('.f-op').forEach(sel => {
-    sel.addEventListener('change', () => updateFilter(parseInt(sel.dataset.fidx)));
-  });
-  bar.querySelectorAll('.f-val').forEach(inp => {
-    inp.addEventListener('input', () => updateFilter(parseInt(inp.dataset.fidx)));
-  });
-  bar.querySelector('#clearFiltersBtn').addEventListener('click', clearFilters);
+  sel.value = '';
+  document.getElementById('fpOp').disabled = true;
+  document.getElementById('fpVal').disabled = true;
+  document.getElementById('fpVal').value = '';
+  document.getElementById('fpUnit').textContent = '';
+  document.getElementById('fpAddBtn').disabled = true;
+  renderFilterChips();
+  document.getElementById('filterPanel').classList.add('open');
+  document.getElementById('filterOverlay').classList.add('open');
 }
 
-function updateFilter(idx) {
-  const bar = document.getElementById('filterBar');
-  const opSel = bar.querySelector(`.f-op[data-fidx="${idx}"]`);
-  const valInp = bar.querySelector(`.f-val[data-fidx="${idx}"]`);
-  const op = opSel.value;
-  const val = parseFloat(valInp.value);
-  if (op && !isNaN(val)) {
-    filters[idx] = {op, val};
-  } else {
-    delete filters[idx];
+function closeFilterPanel() {
+  document.getElementById('filterPanel').classList.remove('open');
+  document.getElementById('filterOverlay').classList.remove('open');
+}
+
+function renderFilterChips() {
+  const container = document.getElementById('fpActive');
+  const entries = Object.entries(pendingFilters);
+  if (!entries.length) {
+    container.innerHTML = '<span class="fp-empty">暂无筛选条件</span>';
+    return;
   }
-  updateFilterToggleStyle();
-  render();
+  container.innerHTML = entries.map(([idx, f]) => {
+    const fc = FILTER_COLS.find(c => c.idx === parseInt(idx));
+    const unit = fc?.unit || '';
+    return `<span class="fp-chip">${fc?.name} ${f.op} ${f.val}${unit}<button class="fp-chip-rm" data-fidx="${idx}">×</button></span>`;
+  }).join('');
+  container.querySelectorAll('.fp-chip-rm').forEach(btn => {
+    btn.addEventListener('click', () => {
+      delete pendingFilters[btn.dataset.fidx];
+      renderFilterChips();
+    });
+  });
 }
 
-function clearFilters() {
-  filters = {};
+document.getElementById('fpCol').addEventListener('change', () => {
+  const idx = document.getElementById('fpCol').value;
+  const fc = FILTER_COLS.find(c => c.idx === parseInt(idx));
+  const has = !!idx;
+  document.getElementById('fpOp').disabled = !has;
+  document.getElementById('fpVal').disabled = !has;
+  document.getElementById('fpVal').value = '';
+  document.getElementById('fpUnit').textContent = fc?.unit || '';
+  document.getElementById('fpAddBtn').disabled = !has;
+});
+
+document.getElementById('fpAddBtn').addEventListener('click', () => {
+  const idx = parseInt(document.getElementById('fpCol').value);
+  const op = document.getElementById('fpOp').value;
+  const val = parseFloat(document.getElementById('fpVal').value);
+  if (!idx || !op || isNaN(val)) return;
+  pendingFilters[idx] = {op, val};
+  renderFilterChips();
+  document.getElementById('fpCol').value = '';
+  document.getElementById('fpOp').disabled = true;
+  document.getElementById('fpVal').disabled = true;
+  document.getElementById('fpVal').value = '';
+  document.getElementById('fpUnit').textContent = '';
+  document.getElementById('fpAddBtn').disabled = true;
+});
+
+document.getElementById('fpClearBtn').addEventListener('click', () => {
+  pendingFilters = {};
+  renderFilterChips();
+});
+
+document.getElementById('fpApplyBtn').addEventListener('click', () => {
+  filters = Object.assign({}, pendingFilters);
   updateFilterToggleStyle();
-  buildFilterBar();
+  closeFilterPanel();
   render();
-}
+});
+
+document.getElementById('filterClose').addEventListener('click', closeFilterPanel);
+document.getElementById('filterOverlay').addEventListener('click', closeFilterPanel);
 
 function updateFilterToggleStyle() {
   const btn = document.getElementById('filterToggleBtn');
@@ -912,28 +1006,22 @@ document.getElementById('industryFilter').addEventListener('change', e => {
   render();
 });
 
-document.getElementById('clearSort').addEventListener('click', () => {
-  sortCol = -1; sortDir = 'asc';
-  render();
-});
-
 document.getElementById('filterToggleBtn').addEventListener('click', () => {
-  const bar = document.getElementById('filterBar');
-  const isOpen = bar.classList.toggle('open');
-  if (isOpen) buildFilterBar();
+  if (document.getElementById('filterPanel').classList.contains('open')) closeFilterPanel();
+  else openFilterPanel();
 });
 
 document.getElementById('resetView').addEventListener('click', () => {
   sortCol = -1; sortDir = 'asc';
   searchText = ''; filterIndustry = ''; filterStockType = '';
-  filters = {};
+  filters = {}; pendingFilters = {};
   document.getElementById('searchBox').value = '';
   document.getElementById('stockTypeFilter').value = '';
   document.getElementById('industryFilter').value = '';
   visiblePeriods = new Set(PERIODS);
   visibleMetrics = new Set(METRICS.filter(m => !METRICS_DEFAULT_HIDDEN.has(m)));
   visibleComputedCols = new Set(COMPUTED_COL_NAMES.filter(n => !COMPUTED_DEFAULT_HIDDEN.has(n)));
-  document.getElementById('filterBar').classList.remove('open');
+  closeFilterPanel();
   updateFilterToggleStyle();
   closeColPicker();
   render();

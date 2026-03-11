@@ -158,11 +158,15 @@ METRICS_HIDE_DEFAULT = {
     '年度分红',
 }
 
+# Fixed columns hidden by default (non-locked 基本信息 columns)
+FIXED_HIDE_DEFAULT = {'总股本(股)'}
+
 # Computed columns hidden by default
 COMPUTED_HIDE_DEFAULT = {
     'TTM股份回购', 'TTM支付股息', '预期25年度分红',
     '最新总现金', '最新流动资产', '最新总负债', '最新短期借款', '最新长期借款', '最新权益合计',
     '综合分数',
+    'TTM经营现金流', 'TTM投资现金流', 'TTM资本支出', 'TTM融资现金流', '预期25股东回报', '有息负债',
 }
 
 # Build full column list
@@ -174,7 +178,7 @@ for i, (display, raw_key) in enumerate(FIXED_COLS):
         'raw_key': raw_key,
         'group': '基本信息',
         'locked': locked,
-        'defaultVisible': True,
+        'defaultVisible': display not in FIXED_HIDE_DEFAULT,
     })
 
 for name in COMPUTED_COL_DEFS:
@@ -760,6 +764,7 @@ _data_bundle = {
     'ttmroic_idx': TTMROIC_IDX_PY,
     'metrics_hidden': sorted(METRICS_HIDE_DEFAULT),
     'computed_hidden': sorted(COMPUTED_HIDE_DEFAULT),
+    'fixed_hidden': sorted(FIXED_HIDE_DEFAULT),
     'industry_html': industry_opts,
     'row_count': len(rows),
 }
@@ -1138,10 +1143,13 @@ function getStockType(row) {{
 // ---- State ----
 const METRICS_DEFAULT_HIDDEN   = new Set(_d.metrics_hidden);
 const COMPUTED_DEFAULT_HIDDEN  = new Set(_d.computed_hidden);
+const FIXED_DEFAULT_HIDDEN     = new Set(_d.fixed_hidden || []);
+const FIXED_TOGGLEABLE_NAMES   = COLS.filter(c => c.group === '基本信息' && !c.locked).map(c => c.name);
 let sortCol = -1, sortDir = 'asc';
 let visiblePeriods = new Set(PERIODS);
 let visibleMetrics = new Set(METRICS.filter(m => !METRICS_DEFAULT_HIDDEN.has(m)));
 let visibleComputedCols = new Set(COMPUTED_COL_NAMES.filter(n => !COMPUTED_DEFAULT_HIDDEN.has(n)));
+let visibleFixedCols = new Set(FIXED_TOGGLEABLE_NAMES.filter(n => !FIXED_DEFAULT_HIDDEN.has(n)));
 let searchText = '';
 let filterIndustry = '';
 let filterStockType = '';
@@ -1181,7 +1189,21 @@ function buildColPicker() {{
     return h + `</div></div>`;
   }}
 
+  function makeFixedSection() {{
+    if (!FIXED_TOGGLEABLE_NAMES.length) return '';
+    let h = `<div class="cp-group"><div class="cp-group-hdr">
+      <span class="cp-group-name">基本信息</span>
+      <button class="cp-group-btn" data-sec="fixed" data-a="all">全选</button>
+      <button class="cp-group-btn" data-sec="fixed" data-a="none">全不选</button>
+      </div><div class="cp-cols">`;
+    FIXED_TOGGLEABLE_NAMES.forEach(n => {{
+      h += `<label class="cp-col"><input type="checkbox" data-sec="fixed" data-val="${{n}}" ${{visibleFixedCols.has(n)?'checked':''}}> ${{n}}</label>`;
+    }});
+    return h + `</div></div>`;
+  }}
+
   body.innerHTML =
+    makeFixedSection() +
     makeComputedSection() +
     makeSection('财报周期', PERIODS, visiblePeriods) +
     makeSection('财务指标', METRICS, visibleMetrics);
@@ -1189,7 +1211,8 @@ function buildColPicker() {{
   body.querySelectorAll('input[data-sec]').forEach(cb => {{
     cb.addEventListener('change', e => {{
       const sec = e.target.dataset.sec;
-      const set = sec === 'computed' ? visibleComputedCols
+      const set = sec === 'fixed'    ? visibleFixedCols
+                : sec === 'computed' ? visibleComputedCols
                 : sec === '财报周期' ? visiblePeriods : visibleMetrics;
       if (e.target.checked) set.add(e.target.dataset.val);
       else set.delete(e.target.dataset.val);
@@ -1202,7 +1225,8 @@ function buildColPicker() {{
       const sec = e.target.dataset.sec;
       const set  = sec === 'computed' ? visibleComputedCols
                  : sec === '财报周期' ? visiblePeriods : visibleMetrics;
-      const items = sec === 'computed' ? COMPUTED_COL_NAMES
+      const items = sec === 'fixed'    ? FIXED_TOGGLEABLE_NAMES
+                  : sec === 'computed' ? COMPUTED_COL_NAMES
                   : sec === '财报周期' ? PERIODS : METRICS;
       if (e.target.dataset.a === 'all') items.forEach(v => set.add(v));
       else set.clear();
@@ -1234,7 +1258,8 @@ document.getElementById('cpOverlay').addEventListener('click', closeColPicker);
 // ---- Visible col defs ----
 function getVisibleColDefs() {{
   return COLS.filter(col => {{
-    if (col.locked || col.group === '基本信息') return true;
+    if (col.locked) return true;
+    if (col.group === '基本信息') return visibleFixedCols.has(col.name);
     if (col.group === '计算指标') return visibleComputedCols.has(col.name);
     const pipe = col.fullName.indexOf('|');
     const period = col.fullName.slice(pipe + 1);

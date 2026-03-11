@@ -174,6 +174,54 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
 .filter-item .unit { color: #778; font-size: 11px; }
 .filter-active { color: #e05020; font-weight: 600; }
 #clearFiltersBtn { color: #e05020; border-color: #e05020; }
+/* Rules button */
+.btn-rules { color: #5aaeff; border-color: #5aaeff; }
+.btn-rules:hover { background: #eaf2ff; }
+/* Rules modal */
+.rules-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 300; }
+.rules-overlay.open { display: block; }
+.rules-modal {
+  display: none; position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(700px, 96vw); max-height: 86vh;
+  background: #16243a; color: #c8d8ec;
+  border-radius: 12px; z-index: 301; flex-direction: column;
+  overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,.6);
+}
+.rules-modal.open { display: flex; }
+.rules-hdr {
+  background: #1a2d46; padding: 14px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-shrink: 0; border-bottom: 1px solid #253d5a;
+}
+.rules-hdr h2 { margin: 0; font-size: 15px; color: #e0eaf8; font-weight: 700; }
+.rules-close { background: none; border: none; color: #7aa8cc; cursor: pointer;
+  font-size: 20px; line-height: 1; padding: 2px 8px; }
+.rules-close:hover { color: #fff; }
+.rules-body { flex: 1; overflow-y: auto; padding: 20px 24px 28px;
+  scrollbar-width: thin; scrollbar-color: #2a3d5a #16243a; }
+.rules-body section { margin-bottom: 26px; }
+.rules-body h3 { font-size: 13px; font-weight: 700; color: #ffd60a;
+  margin: 0 0 11px; padding-bottom: 6px; border-bottom: 1px solid #253d5a; }
+.rules-body h4 { font-size: 12px; font-weight: 600; color: #8ab8d8; margin: 14px 0 5px; }
+.rules-body p { margin: 0 0 7px; font-size: 12px; line-height: 1.7; color: #a8bdd4; }
+.rules-body ul { margin: 4px 0 8px; padding-left: 18px; }
+.rules-body li { font-size: 12px; line-height: 1.75; color: #a8bdd4; }
+.rules-body strong { color: #dde8f5; }
+.formula { background: #1e3050; border-left: 3px solid #4a7fff;
+  padding: 8px 12px; border-radius: 0 5px 5px 0;
+  font-size: 12px; color: #a0ccf8; font-family: monospace;
+  margin: 5px 0 10px; line-height: 1.8; }
+.rtable { width: 100%; border-collapse: collapse; font-size: 12px; margin: 6px 0 12px; }
+.rtable th { background: #1a3050; color: #8ab8d8; font-weight: 600;
+  padding: 7px 10px; text-align: left; border-bottom: 1px solid #253d5a; }
+.rtable td { padding: 7px 10px; border-bottom: 1px solid #1e3050;
+  color: #a8bdd4; vertical-align: top; }
+.rtable tr:last-child td { border-bottom: none; }
+.rtable td:first-child { color: #dde8f5; font-weight: 500; white-space: nowrap; }
+.cjin { color: #ffd60a; font-weight: 600; }
+.cfei { color: #5bc8ff; font-weight: 600; }
+.cnone { color: #f87070; }
 </style>
 </head>
 <body>
@@ -238,6 +286,8 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
   <button class="btn" id="filterToggleBtn">筛选 ▼</button>
   <span class="sep">|</span>
   <button class="btn btn-export" id="exportBtn">导出 Excel</button>
+  <span class="sep">|</span>
+  <button class="btn btn-rules" id="rulesBtn">? 规则</button>
 </div>
 
 <div class="filter-bar" id="filterBar"></div>
@@ -258,6 +308,125 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
     <button class="cp-close" id="cpClose">✕</button>
   </div>
   <div class="cp-body" id="cpBody"></div>
+</div>
+
+<!-- Rules modal -->
+<div class="rules-overlay" id="rulesOverlay"></div>
+<div class="rules-modal" id="rulesModal">
+  <div class="rules-hdr">
+    <h2>⚖ 计算规则说明</h2>
+    <button class="rules-close" id="rulesClose">✕</button>
+  </div>
+  <div class="rules-body">
+
+    <section>
+      <h3>一、股票分类</h3>
+      <p>所有排名均在<strong>同类内</strong>横向比较，金融股与非金融股互不干扰。"其他"类不参与任何排名。</p>
+      <table class="rtable">
+        <tr><th>类型</th><th>判定条件</th></tr>
+        <tr><td><span class="cjin">金融股</span></td><td>恒生行业属于「保险 / 其他金融 / 银行」，或行业为「综合企业」且名称含「中信股份」</td></tr>
+        <tr><td><span class="cfei">非金融股</span></td><td>非金融 且 历史数据中至少有一期 ROIC（投入资本回报率）数据</td></tr>
+        <tr><td><span class="cnone">其他</span></td><td>非金融 且 完全没有 ROIC 数据（主要为部分房产、资源类公司）</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h3>二、最新报期 &amp; TTM 计算</h3>
+      <h4>最新财报季优先级</h4>
+      <p><strong>2025年报</strong> &gt; <strong>2025三季报</strong> &gt; <strong>2025中报</strong>（取最新已发布的报期）</p>
+      <h4>TTM（滚动12个月）算法</h4>
+      <p>对于现金流、净利润等<strong>累计类</strong>指标：</p>
+      <div class="formula">
+        若有年报 → 直接用年报值<br>
+        若有三季报 → TTM = 2025三季报 + 2024年报 − 2024三季报<br>
+        若有中报   → TTM = 2025中报   + 2024年报 − 2024中报
+      </div>
+      <p>对于 ROE、ROIC 等<strong>比率类</strong>指标（同上优先级，三季报/中报按如下处理）：</p>
+      <div class="formula">
+        若有完整同期数据 → TTM = 当期值 + 2024年报 − 同期2024报<br>
+        否则（无同期数据）→ 三季报 ÷ 3 × 4，中报 × 2（粗略折年）
+      </div>
+    </section>
+
+    <section>
+      <h3>三、关键指标公式</h3>
+      <h4>TTMFCF（自由现金流）</h4>
+      <p>取以下两种算法的<strong>较大值</strong>（更保守，过滤账务异常）：</p>
+      <div class="formula">
+        方法一：经营现金流 + 资本支出（资本支出取负值流出部分，若为正则视为异常置空）<br>
+        方法二：经营现金流 + 投资现金流<br>
+        TTMFCF = max(方法一, 方法二)；金融股 → 置空
+      </div>
+      <h4>净现金</h4>
+      <div class="formula">
+        净现金 = 总现金 − 短期借款 − 长期借款<br>
+        （各项缺失视为 0；金融股 → 置空）
+      </div>
+      <h4>股东收益率</h4>
+      <div class="formula">
+        股东收益率 = TTMFCF ÷ (总市值 + 净现金) × 100%<br>
+        分母 = 企业价值（EV）；金融股 → 置空
+      </div>
+      <h4>PE(TTM) &amp; PB（动态计算）</h4>
+      <div class="formula">
+        PE(TTM) = 总市值 ÷ TTM归母净利润（亏损时置空）<br>
+        PB      = 总市值 ÷ 最新净资产
+      </div>
+      <h4>预期25年度分红</h4>
+      <div class="formula">
+        有 2025 年报数据 → 直接取 2025 年报年度分红<br>
+        无 2025 年报数据 → 2024年度分红 × (1 + TTM净利同比 ÷ 100)（结果为负则置空）
+      </div>
+      <h4>预期25股东回报 &amp; 股东回报分配率</h4>
+      <div class="formula">
+        预期25股东回报  = 预期25年度分红 + |TTM股份回购| ÷ 2（股份回购取绝对值，回购视为一次性，折半计入）<br>
+        股东回报分配率  = 预期25股东回报 ÷ TTM归母净利润 × 100%
+      </div>
+    </section>
+
+    <section>
+      <h3>四、排名规则</h3>
+      <p>所有排名均采用<strong>标准竞争排名（1224式）</strong>：并列时取相同名次，下一名跳过相应位次。排名数值<strong>越小越好</strong>。</p>
+      <table class="rtable">
+        <tr><th>排名</th><th><span class="cjin">金融股</span></th><th><span class="cfei">非金融股</span></th><th>特殊规则</th></tr>
+        <tr>
+          <td>低估排名</td>
+          <td>PE(TTM) <strong>升序</strong></td>
+          <td>股东收益率 <strong>降序</strong></td>
+          <td>PE≤0 或股东收益率≤0 → <span class="cnone">无排名</span></td>
+        </tr>
+        <tr>
+          <td>成长排名</td>
+          <td colspan="2">TTM净利同比 <strong>降序</strong>（金融/非金融各自排队）</td>
+          <td>同比数据缺失视为 0，<strong>全员参与</strong></td>
+        </tr>
+        <tr>
+          <td>质量排名</td>
+          <td>TTMROE <strong>降序</strong></td>
+          <td>TTMROIC <strong>降序</strong></td>
+          <td>数据缺失 → <span class="cnone">无排名</span></td>
+        </tr>
+        <tr>
+          <td>股东回报排名</td>
+          <td colspan="2">股东回报分配率 <strong>降序</strong>（金融/非金融各自排队）</td>
+          <td>≤0 或缺失 → 末位（= 本队列总人数）</td>
+        </tr>
+      </table>
+    </section>
+
+    <section>
+      <h3>五、综合分数 &amp; 综合排名</h3>
+      <div class="formula">
+        综合分数 = 低估排名 × 0.4 + 成长排名 × 0.2 + 质量排名 × 0.2 + 股东回报排名 × 0.2
+      </div>
+      <ul>
+        <li>四项子排名<strong>任一为空</strong>（即"其他"类或低估/质量无法计算）→ 综合分数为空，不参与综合排名</li>
+        <li>综合排名按综合分数<strong>升序</strong>排列，金融/非金融分队列独立排名</li>
+        <li>综合分数越低 = 低估+成长+质量+回报综合越好</li>
+      </ul>
+    </section>
+
+  </div>
 </div>
 
 <div class="table-wrap" id="tableWrap">
@@ -771,6 +940,17 @@ document.getElementById('resetView').addEventListener('click', () => {
 });
 
 document.getElementById('exportBtn').addEventListener('click', exportExcel);
+
+document.getElementById('rulesBtn').addEventListener('click', () => {
+  document.getElementById('rulesModal').classList.add('open');
+  document.getElementById('rulesOverlay').classList.add('open');
+});
+function closeRules() {
+  document.getElementById('rulesModal').classList.remove('open');
+  document.getElementById('rulesOverlay').classList.remove('open');
+}
+document.getElementById('rulesClose').addEventListener('click', closeRules);
+document.getElementById('rulesOverlay').addEventListener('click', closeRules);
 
 // ---- Init ----
 render();

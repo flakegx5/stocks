@@ -249,41 +249,9 @@ document.getElementById('subtitleText').textContent =
 // Percentage-type metrics — do NOT convert to 亿
 const PCT_METRICS = new Set(['净利润同比', 'ROE', 'ROIC']);
 
-// Computed 亿 cols: TTM净利(11), 现金(13-17), 现金流(20-27), 净现金/有息负债/FCF(28-30)
-const COMPUTED_YI_COLS = new Set([11,13,14,15,16,17,18,21,22,23,24,25,26,27,28,29,30,31]);
-const COMPUTED_COL_NAMES = [
-  '最新财报季','TTM归母净利润','TTM净利同比',
-  '最新总现金','最新流动资产','最新总负债','最新短期借款','最新长期借款','最新权益合计',
-  'TTMROE','TTMROIC',
-  'TTM经营现金流','TTM投资现金流','TTM资本支出','TTM融资现金流','TTM股份回购','TTM支付股息',
-  '预期25年度分红','预期25股东回报',
-  '净现金','有息负债','TTMFCF','股东收益率','股东回报分配率',
-  '低估排名','成长排名','质量排名','股东回报排名','综合分数','综合排名',
-];
-const FILTER_COLS = [
-  {idx:11, name:'TTM归母净利润',  unit:'亿', isYi:true},
-  {idx:12, name:'TTM净利同比',    unit:'%',  isYi:false},
-  {idx:TTMROE_IDX,  name:'TTMROE',  unit:'%', isYi:false},
-  {idx:TTMROIC_IDX, name:'TTMROIC', unit:'%', isYi:false},
-  {idx:18, name:'最新权益合计',   unit:'亿', isYi:true},
-  {idx:21, name:'TTM经营现金流',  unit:'亿', isYi:true},
-  {idx:22, name:'TTM投资现金流',  unit:'亿', isYi:true},
-  {idx:23, name:'TTM资本支出',    unit:'亿', isYi:true},
-  {idx:24, name:'TTM融资现金流',  unit:'亿', isYi:true},
-  {idx:27, name:'预期25年度分红', unit:'亿', isYi:true},
-  {idx:28, name:'预期25股东回报', unit:'亿', isYi:true},
-  {idx:29, name:'净现金',         unit:'亿', isYi:true},
-  {idx:30, name:'有息负债',       unit:'亿', isYi:true},
-  {idx:31, name:'TTMFCF',        unit:'亿', isYi:true},
-  {idx:32, name:'股东收益率',     unit:'%',  isYi:false},
-  {idx:33, name:'股东回报分配率', unit:'%',  isYi:false},
-  {idx:34, name:'低估排名',       unit:'',   isYi:false},
-  {idx:35, name:'成长排名',       unit:'',   isYi:false},
-  {idx:36, name:'质量排名',       unit:'',   isYi:false},
-  {idx:37, name:'股东回报排名',   unit:'',   isYi:false},
-  {idx:38, name:'综合分数',       unit:'',   isYi:false},
-  {idx:39, name:'综合排名',       unit:'',   isYi:false},
-];
+const COMPUTED_YI_COLS = new Set(_d.computed_yi_cols);
+const COMPUTED_COL_NAMES = _d.computed_col_names;
+const FILTER_COLS = _d.filter_cols;
 
 // ---- Utility ----
 function parseNum(s) {

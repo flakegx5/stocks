@@ -26,17 +26,17 @@ git push
 - **`hk_stocks_data_new.json`** — 所有数据（iwencai 抓取，含最新价/市值/PE/PB 及历史财务），不要手动修改
 
 ### 脚本
-- **`build_html.py`** — 唯一需要编辑的核心文件（约1300行）。读取 JSON，计算所有派生列，输出 `index.html` + `data.js`
+- **`build_html.py`** — 数据处理核心（约800行）。读取 JSON，计算所有派生列，**只输出 `data.js`**（不再生成 index.html）
 - **`scrape_iwencai_xhr.py`** — 自动抓取 iwencai 港股数据（Playwright 无头浏览器），支持 `--login/--debug/--build/--push`
 - **`update_market.py`** — 旧版 AKShare 行情更新脚本，已不再使用（保留备用）
 
-### 输出（前后端分离架构）
-- **`index.html`** — 静态模板（~29KB，CSS + JS 逻辑），在 git 中
-- **`data.js`** — 构建时数据（~1.6MB，所有表格数据+计算常量），在 git 中
-- `index.html` 通过 `<script src="data.js">` 加载数据，本地双击可直接打开
+### 前后端分离架构
+- **`index.html`** — **静态前端源文件**（HTML + CSS + JS 逻辑），改 UI 时直接编辑此文件，在 git 中
+- **`data.js`** — 构建输出（所有表格数据 + 全部配置常量），由 `build_html.py` 生成，在 git 中
+- `index.html` 通过 `<script src="data.js">` 加载 `window.STOCK_DATA`，本地双击可直接打开
 
 生成命令：`python3 build_html.py`
-输出：`index.html`（~29KB）+ `data.js`（~1.6MB）
+输出：`data.js`（~1.6MB，不再生成 index.html）
 在线访问：https://flakegx5.github.io/stocks/
 
 ---

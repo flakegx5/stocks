@@ -322,7 +322,7 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
   </select>
   <span class="sep">|</span>
   <div class="col-picker-wrap">
-    <button class="btn" id="colPickerBtn">表头设置 ▼</button>
+    <button class="btn" id="colPickerBtn">展示内容 ▼</button>
   </div>
   <span class="sep">|</span>
   <button class="btn" id="filterToggleBtn">筛选 ▼</button>
@@ -362,7 +362,7 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
 </div>
 
 <div class="summary-bar">
-  <span>显示 <strong id="sRowCount">-</strong> / 共 <strong id="sTotalCount">-</strong> 只 &nbsp;<span class="sb-meta">市值≥50亿港元 · 问财</span></span>
+  <span>显示 <strong id="sRowCount">-</strong> / 共 <strong id="sTotalCount">-</strong> 只 &nbsp;<span class="sb-meta">市值≥50亿港元</span></span>
   <span>总市值 <strong id="sTotalMkt">-</strong></span>
   <span>平均PE(TTM) <strong id="sAvgPE">-</strong></span>
   <span>平均PB <strong id="sAvgPB">-</strong></span>
@@ -373,7 +373,7 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
 <div class="cp-overlay" id="cpOverlay"></div>
 <div class="col-picker" id="colPicker">
   <div class="cp-header">
-    <span>列设置</span>
+    <span>展示内容</span>
     <button class="cp-close" id="cpClose">✕</button>
   </div>
   <div class="cp-body" id="cpBody"></div>
@@ -620,7 +620,7 @@ let displayIndices = [];
 
 // ---- Computed col groups (for col picker) ----
 const COMPUTED_GROUPS = [
-  { label: '盈利', cols: ['最新财报季', 'TTM归母净利润', 'TTM净利同比'] },
+  { label: '盈利', cols: ['TTM归母净利润', 'TTM净利同比'] },
   { label: '回报率', cols: ['TTMROE', 'TTMROIC', '股东收益率', '股东回报分配率'] },
   { label: '现金流', cols: ['TTM经营现金流', 'TTM投资现金流', 'TTM资本支出', 'TTM融资现金流', 'TTMFCF'] },
   { label: '资产负债', cols: ['最新总现金', '最新流动资产', '最新总负债', '最新短期借款', '最新长期借款', '最新权益合计', '净现金', '有息负债'] },
@@ -673,6 +673,8 @@ function buildColPicker() {
     FIXED_TOGGLEABLE_NAMES.forEach(n => {
       h += `<label class="cp-col"><input type="checkbox" data-sec="fixed" data-val="${n}" ${visibleFixedCols.has(n)?'checked':''}> ${n}</label>`;
     });
+    // 最新财报季 is computed but displayed under 基本信息
+    h += `<label class="cp-col"><input type="checkbox" data-sec="computed" data-val="最新财报季" ${visibleComputedCols.has('最新财报季')?'checked':''}> 最新财报季</label>`;
     return h + `</div></div>`;
   }
 

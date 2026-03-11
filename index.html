@@ -10,16 +10,24 @@ body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", 
   font-size: 13px; background: #f5f6f8; color: #1a1a1a; }
 
 /* Header */
-.page-header { background: #1a2332; color: #fff; padding: 14px 20px; display: flex;
-  align-items: center; gap: 16px; position: sticky; top: 0; z-index: 100;
+.page-header { background: #1a2332; color: #fff; padding: 10px 20px; display: flex;
+  align-items: center; gap: 20px; position: sticky; top: 0; z-index: 100;
   box-shadow: 0 2px 8px rgba(0,0,0,.3); }
-.page-header h1 { margin: 0; font-size: 17px; font-weight: 600; }
-.page-header .subtitle { font-size: 11px; color: #9ab; }
+.brand { display: flex; align-items: center; gap: 11px; flex-shrink: 0; }
+.brand-icon { display: block; flex-shrink: 0; }
+.brand-text { display: flex; flex-direction: column; gap: 1px; }
+.page-header h1 { margin: 0; font-size: 22px; font-weight: 700; line-height: 1;
+  letter-spacing: -0.5px; }
+.page-header h1 .t-hk { font-size: 15px; font-weight: 400; color: #7aa8cc;
+  letter-spacing: 0; }
+.page-header h1 .t-bi { color: #ffd60a; }
+.brand-tagline { font-size: 10px; color: #4e7a9a; letter-spacing: 0.6px; }
+.page-header .subtitle { font-size: 11px; color: #5a8099; }
 
 /* Controls */
 .controls { background: #fff; border-bottom: 1px solid #e0e3ea; padding: 8px 20px;
   display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-  position: sticky; top: 49px; z-index: 99; }
+  position: sticky; top: 58px; z-index: 99; }
 .controls input[type=search], .controls select {
   height: 30px; border: 1px solid #d0d3da; border-radius: 4px; padding: 0 10px;
   font-size: 12px; outline: none; background: #fafbfc; }
@@ -73,7 +81,7 @@ body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", 
 .summary-bar strong { color: #1a2332; }
 
 /* Table wrapper */
-.table-wrap { overflow: auto; height: calc(100vh - 148px); }
+.table-wrap { overflow: auto; height: calc(100vh - 157px); }
 
 /* Table */
 table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
@@ -171,7 +179,40 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
 <body>
 
 <div class="page-header">
-  <h1>港股数据</h1>
+  <div class="brand">
+    <svg class="brand-icon" width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bgg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#d62839"/>
+          <stop offset="100%" stop-color="#8b0d1a"/>
+        </linearGradient>
+      </defs>
+      <!-- Background -->
+      <rect width="40" height="40" rx="10" fill="url(#bgg)"/>
+      <!-- Vertical post -->
+      <rect x="18.5" y="9" width="3" height="21" rx="1.5" fill="rgba(255,255,255,0.85)"/>
+      <!-- Beam (slightly tilted: left up, right down — one side lighter) -->
+      <line x1="6" y1="14" x2="34" y2="16" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+      <!-- Pivot circle -->
+      <circle cx="20" cy="15" r="2.8" fill="white"/>
+      <!-- Left strings -->
+      <line x1="7" y1="14" x2="7" y2="22" stroke="rgba(255,255,255,0.6)" stroke-width="1.1"/>
+      <line x1="12" y1="14.4" x2="12" y2="22" stroke="rgba(255,255,255,0.6)" stroke-width="1.1"/>
+      <!-- Left pan (gold arc) -->
+      <path d="M5 22 Q9.5 27.5 14 22" fill="none" stroke="#ffd60a" stroke-width="2.1" stroke-linecap="round"/>
+      <!-- Right strings -->
+      <line x1="28" y1="15.6" x2="28" y2="26" stroke="rgba(255,255,255,0.6)" stroke-width="1.1"/>
+      <line x1="33" y1="15.9" x2="33" y2="26" stroke="rgba(255,255,255,0.6)" stroke-width="1.1"/>
+      <!-- Right pan (gold arc, lower) -->
+      <path d="M26 26 Q30.5 31.5 35 26" fill="none" stroke="#ffd60a" stroke-width="2.1" stroke-linecap="round"/>
+      <!-- Base -->
+      <rect x="14" y="29" width="12" height="2.8" rx="1.4" fill="rgba(255,255,255,0.8)"/>
+    </svg>
+    <div class="brand-text">
+      <h1><span class="t-hk">港股</span><span class="t-bi">比</span>价</h1>
+      <span class="brand-tagline">多维量化比较 · 发现真实性价比</span>
+    </div>
+  </div>
   <span class="subtitle" id="subtitleText">市值≥50亿港元 · 数据来源：问财</span>
 </div>
 

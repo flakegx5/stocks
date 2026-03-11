@@ -729,19 +729,16 @@ for i, col in enumerate(all_cols):
     })
 
 
-# Period cols start after fixed(10) + computed(28) = idx 38
+# Period cols start after fixed(10) + computed cols
 # metric_i * N_PERIODS + period_j; N_PERIODS = len(PERIOD_DATES)
-PERIOD_START  = 10 + len(COMPUTED_COL_DEFS)           # = 38 (10 fixed + 28 computed)
-N_PERIODS     = len(PERIOD_DATES)                       # = 12 (2023Q1 → 2025年报)
+PERIOD_START  = 10 + len(COMPUTED_COL_DEFS)
+N_PERIODS     = len(PERIOD_DATES)
+_PMETRICS     = [disp for _, disp in PERIOD_METRICS]
 _PLABELS      = [label for _, label in PERIOD_DATES]   # most-recent-first
-_IDX_2024ANN  = _PLABELS.index('2024年报')             # = 4
-ROE_2024_IDX    = PERIOD_START + 7 * N_PERIODS + _IDX_2024ANN  # = 126
-PROFIT_2024_IDX = PERIOD_START + 0 * N_PERIODS + _IDX_2024ANN  # = 42
-CF_2024_IDX     = PERIOD_START + 9 * N_PERIODS + _IDX_2024ANN  # = 150
-ROIC_START_IDX  = PERIOD_START + 8 * N_PERIODS                  # = 134 (first ROIC period col)
-ROIC_END_IDX    = ROIC_START_IDX + N_PERIODS - 1                # = 145 (last ROIC period col, inclusive)
-TTMROE_IDX_PY   = 10 + COMPUTED_COL_DEFS.index('TTMROE')   # = 18
-TTMROIC_IDX_PY  = 10 + COMPUTED_COL_DEFS.index('TTMROIC')  # = 19
+ROIC_START_IDX  = PERIOD_START + _PMETRICS.index('ROIC') * N_PERIODS
+ROIC_END_IDX    = ROIC_START_IDX + N_PERIODS - 1
+TTMROE_IDX_PY   = 10 + COMPUTED_COL_DEFS.index('TTMROE')
+TTMROIC_IDX_PY  = 10 + COMPUTED_COL_DEFS.index('TTMROIC')
 
 # ---- Write data.js (all build-time data + constants, loaded by index.html) ----
 
@@ -754,30 +751,30 @@ COMPUTED_YI_NAMES = {
     '净现金', '有息负债', 'TTMFCF',
 }
 
-# 筛选栏列规格（名称、单位、是否亿单位）
+# 筛选栏列规格（名称、单位）；isYi 由 COMPUTED_YI_NAMES 自动推算
 _FILTER_SPECS = [
-    ('TTM归母净利润',  '亿', True),
-    ('TTM净利同比',    '%',  False),
-    ('TTMROE',         '%',  False),
-    ('TTMROIC',        '%',  False),
-    ('最新权益合计',   '亿', True),
-    ('TTM经营现金流',  '亿', True),
-    ('TTM投资现金流',  '亿', True),
-    ('TTM资本支出',    '亿', True),
-    ('TTM融资现金流',  '亿', True),
-    ('预期25年度分红', '亿', True),
-    ('预期25股东回报', '亿', True),
-    ('净现金',         '亿', True),
-    ('有息负债',       '亿', True),
-    ('TTMFCF',         '亿', True),
-    ('股东收益率',     '%',  False),
-    ('股东回报分配率', '%',  False),
-    ('低估排名',       '',   False),
-    ('成长排名',       '',   False),
-    ('质量排名',       '',   False),
-    ('股东回报排名',   '',   False),
-    ('综合分数',       '',   False),
-    ('综合排名',       '',   False),
+    ('TTM归母净利润',  '亿'),
+    ('TTM净利同比',    '%'),
+    ('TTMROE',         '%'),
+    ('TTMROIC',        '%'),
+    ('最新权益合计',   '亿'),
+    ('TTM经营现金流',  '亿'),
+    ('TTM投资现金流',  '亿'),
+    ('TTM资本支出',    '亿'),
+    ('TTM融资现金流',  '亿'),
+    ('预期25年度分红', '亿'),
+    ('预期25股东回报', '亿'),
+    ('净现金',         '亿'),
+    ('有息负债',       '亿'),
+    ('TTMFCF',         '亿'),
+    ('股东收益率',     '%'),
+    ('股东回报分配率', '%'),
+    ('低估排名',       ''),
+    ('成长排名',       ''),
+    ('质量排名',       ''),
+    ('股东回报排名',   ''),
+    ('综合分数',       ''),
+    ('综合排名',       ''),
 ]
 
 _data_bundle = {
@@ -786,9 +783,6 @@ _data_bundle = {
     'cols': cols_meta,
     'periods': [label for _, label in PERIOD_DATES],
     'metrics': [disp for _, disp in PERIOD_METRICS],
-    'roe_idx': ROE_2024_IDX,
-    'profit_idx': PROFIT_2024_IDX,
-    'cf_idx': CF_2024_IDX,
     'roic_start': ROIC_START_IDX,
     'roic_end': ROIC_END_IDX,
     'ttmroe_idx': TTMROE_IDX_PY,
@@ -801,14 +795,13 @@ _data_bundle = {
     'computed_col_names': list(COMPUTED_COL_DEFS),
     'computed_yi_cols': [10 + i for i, n in enumerate(COMPUTED_COL_DEFS) if n in COMPUTED_YI_NAMES],
     'filter_cols': [
-        {'idx': 10 + COMPUTED_COL_DEFS.index(name), 'name': name, 'unit': unit, 'isYi': isyi}
-        for name, unit, isyi in _FILTER_SPECS
+        {'idx': 10 + COMPUTED_COL_DEFS.index(name), 'name': name, 'unit': unit, 'isYi': name in COMPUTED_YI_NAMES}
+        for name, unit in _FILTER_SPECS
     ],
 }
 with open(os.path.join(BASE_DIR, 'data.js'), 'w', encoding='utf-8') as f:
     f.write('window.STOCK_DATA=' + json.dumps(_data_bundle, ensure_ascii=False, separators=(',', ':')) + ';')
 
 print(f"Columns: {len(headers)}, Rows: {len(rows)}")
-print(f"N_PERIODS={N_PERIODS}, 2024年报@position={_IDX_2024ANN}")
-print(f"ROE_2024_IDX={ROE_2024_IDX}, PROFIT_2024_IDX={PROFIT_2024_IDX}, CF_2024_IDX={CF_2024_IDX}")
+print(f"N_PERIODS={N_PERIODS}, PERIOD_START={PERIOD_START}")
 print(f"ROIC_START_IDX={ROIC_START_IDX}, ROIC_END_IDX={ROIC_END_IDX}")

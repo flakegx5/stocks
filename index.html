@@ -216,7 +216,7 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
 .rtable th { background: #1a3050; color: #8ab8d8; font-weight: 600;
   padding: 7px 10px; text-align: left; border-bottom: 1px solid #253d5a; }
 .rtable td { padding: 7px 10px; border-bottom: 1px solid #1e3050;
-  color: #a8bdd4; vertical-align: top; }
+  color: #a8bdd4; vertical-align: top; word-break: break-all; overflow-wrap: anywhere; }
 .rtable tr:last-child td { border-bottom: none; }
 .rtable td:first-child { color: #dde8f5; font-weight: 500; white-space: nowrap; }
 .cjin { color: #ffd60a; font-weight: 600; }
@@ -287,7 +287,7 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
   <span class="sep">|</span>
   <button class="btn btn-export" id="exportBtn">导出 Excel</button>
   <span class="sep">|</span>
-  <button class="btn btn-rules" id="rulesBtn">? 规则</button>
+  <button class="btn btn-rules" id="rulesBtn">查看计算规则</button>
 </div>
 
 <div class="filter-bar" id="filterBar"></div>
@@ -387,6 +387,7 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
     <section>
       <h3>四、排名规则</h3>
       <p>所有排名均采用<strong>标准竞争排名（1224式）</strong>：并列时取相同名次，下一名跳过相应位次。排名数值<strong>越小越好</strong>。</p>
+      <p>各排名均在<strong>同类内</strong>独立进行：<span class="cjin">金融股</span>与<span class="cfei">非金融股</span>互不干扰，<span class="cnone">其他</span>类不参与任何排名。</p>
       <table class="rtable">
         <tr><th>排名</th><th><span class="cjin">金融股</span></th><th><span class="cfei">非金融股</span></th><th>特殊规则</th></tr>
         <tr>

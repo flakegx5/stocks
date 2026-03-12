@@ -333,19 +333,22 @@ tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
   thead th .th-unit { font-size: 8px; }
   td { height: 36px; font-size: 11.5px; padding: 0 5px; }
 
-  /* Sticky col widths (compact on mobile) */
-  thead th:nth-child(1) { min-width: 64px; max-width: 64px; left: 0; }
-  thead th:nth-child(2) { min-width: 76px; max-width: 76px; left: 64px; }
-  td:nth-child(1) { min-width: 64px; max-width: 64px; left: 0; }
-  td:nth-child(2) { min-width: 76px; max-width: 76px; left: 64px; }
-  tbody tr:nth-child(even) td:nth-child(2),
-  tbody tr:nth-child(odd)  td:nth-child(2) { left: 64px; }
-
-  /* Ranking columns — narrow + centered (fits 5 cols in remaining ~220px) */
-  th.col-rank, td.col-rank {
-    min-width: 44px; max-width: 44px; width: 44px;
-    text-align: center; padding: 0 2px;
+  /* Mobile col layout: 代码隐藏 → 简称=nth-child(1), 第一排名列=nth-child(2) */
+  /* nth-child(1) = 简称: sticky left:0, 调整为简称的样式 */
+  thead th:nth-child(1) { min-width: 80px; max-width: 80px; left: 0; }
+  td:nth-child(1) {
+    min-width: 80px; max-width: 80px; left: 0;
+    font-family: inherit; font-weight: 500; color: #1a2332;
+    border-right: 2px solid #c0c8d8;
   }
+  /* nth-child(2) = 低估排名: 取消粘性及代码列特殊样式 */
+  thead th:nth-child(2) { position: static; left: auto; min-width: auto; max-width: none; will-change: auto; }
+  td:nth-child(2) {
+    position: static; left: auto; min-width: auto; max-width: none;
+    font-weight: normal; color: inherit; border-right: 1px solid #e6e9f0; will-change: auto;
+  }
+  tbody tr:nth-child(even) td:nth-child(2),
+  tbody tr:nth-child(odd)  td:nth-child(2) { left: auto; }
 
   /* Column picker — bottom sheet */
   .col-picker {
@@ -723,8 +726,6 @@ let visibleFixedCols = new Set(FIXED_TOGGLEABLE_NAMES.filter(n => !FIXED_DEFAULT
 // Mobile detection & defaults
 const isMobile = () => window.innerWidth < 768;
 const MOBILE_COMPUTED_VISIBLE = new Set(['低估排名', '成长排名', '质量排名', '股东回报排名', '综合排名']);
-// Abbreviated headers for mobile — allows narrow 44px columns
-const MOBILE_COL_ALIAS = { '低估排名': '低估', '成长排名': '成长', '质量排名': '质量', '股东回报排名': '回报', '综合排名': '综合' };
 if (isMobile()) {
   visibleMetrics      = new Set();                         // no period metrics
   visibleComputedCols = new Set(MOBILE_COMPUTED_VISIBLE);  // only rankings
@@ -856,7 +857,8 @@ document.getElementById('cpOverlay').addEventListener('click', closeColPicker);
 // ---- Visible col defs ----
 function getVisibleColDefs() {
   return COLS.filter(col => {
-    if (col.idx === 0) return false;  // 序号列已移除
+    if (col.idx === 0) return false;                      // 序号列已移除
+    if (isMobile() && col.idx === 1) return false;        // 代码列手机端默认不展现
     if (col.locked) return true;
     if (col.group === '基本信息') return visibleFixedCols.has(col.name);
     if (col.group === '计算指标') return visibleComputedCols.has(col.name);
@@ -895,11 +897,6 @@ function buildHeader() {
     } else {
       metric = cleanColName(col.name); date = '';
     }
-    // Mobile: use abbreviated name for ranking cols
-    if (isMobile() && MOBILE_COL_ALIAS[col.name]) {
-      metric = MOBILE_COL_ALIAS[col.name];
-      th.classList.add('col-rank');
-    }
     const unit = headerUnitOverride[col.idx] ?? getColUnit(col);
     const unitHtml = unit ? `<span class="th-unit">${unit}</span>` : '';
     th.innerHTML = `<span class="th-metric">${metric}</span>${unitHtml}${date ? `<span class="th-date">${date}</span>` : ''}`;
@@ -926,12 +923,11 @@ function buildBody() {
     colDefs.forEach((col, pos) => {
       const rawVal = row[col.idx] ?? '--';
       const classes = [];
-      if (pos >= 2) {
+      if (!col.locked) {
         const n = parseNum(String(rawVal));
         if (n !== null && n < 0) classes.push('neg');
         else if (n !== null && n > 0 && col.idx >= 4) classes.push('pos');
       }
-      if (isMobile() && MOBILE_COL_ALIAS[col.name]) classes.push('col-rank');
       const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
       html += `<td${cls}>${fmtCell(rawVal, col)}</td>`;
     });

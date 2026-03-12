@@ -289,6 +289,9 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
    Mobile (≤767px)
    ============================================================ */
 @media (max-width: 767px) {
+  /* Lock page-level scroll — all scrolling happens inside specific containers */
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+
   /* Header */
   .page-header { height: 50px; padding: 0 14px; gap: 10px; }
   .brand { gap: 9px; }
@@ -302,6 +305,7 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
     top: 50px; padding: 7px 14px;
     flex-wrap: nowrap; overflow-x: auto;
     -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 6px;
+    touch-action: pan-x;
   }
   .controls::-webkit-scrollbar { display: none; }
   .sep { display: none; }
@@ -314,6 +318,7 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
   .summary-bar {
     padding: 0 14px; overflow-x: auto;
     -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 0;
+    touch-action: pan-x;
   }
   .summary-bar::-webkit-scrollbar { display: none; }
   .sb-meta { display: none; }
@@ -323,7 +328,7 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
   .sb-stat strong { font-size: 12.5px; }
 
   /* Table wrapper */
-  .table-wrap { height: calc(100vh - 130px); }
+  .table-wrap { height: calc(100vh - 130px); touch-action: pan-x pan-y; }
 
   /* Table */
   thead th { height: 40px; font-size: 11px; padding: 0 5px; }

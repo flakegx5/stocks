@@ -101,7 +101,7 @@ body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", 
 .sb-meta { margin-left: auto; font-size: 11px; color: #9ca3af; flex-shrink: 0; padding-left: 16px; }
 
 /* Table wrapper */
-.table-wrap { overflow: auto; height: calc(100vh - 142px); overscroll-behavior: contain; }
+.table-wrap { overflow: auto; height: calc(100vh - 142px); overscroll-behavior: none; }
 
 /* Table */
 table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
@@ -728,6 +728,32 @@ if (isMobile()) {
   visibleMetrics      = new Set();                         // no period metrics
   visibleComputedCols = new Set(MOBILE_COMPUTED_VISIBLE);  // only rankings
   visibleFixedCols    = new Set();                         // no optional fixed cols
+
+  // Prevent the table-wrap container from being dragged by WebView (e.g. WeChat).
+  // When the user swipes past the horizontal scroll boundary, block the native gesture
+  // so it doesn't translate the whole element.
+  document.addEventListener('touchstart', function(e) {
+    const tw = e.target.closest('.table-wrap');
+    if (!tw) return;
+    tw._touchStartX = e.touches[0].clientX;
+    tw._touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    const tw = e.target.closest('.table-wrap');
+    if (!tw) return;
+    const dx = e.touches[0].clientX - tw._touchStartX;
+    const dy = e.touches[0].clientY - tw._touchStartY;
+    const atLeft   = tw.scrollLeft <= 0;
+    const atRight  = tw.scrollLeft >= tw.scrollWidth - tw.clientWidth - 1;
+    const atTop    = tw.scrollTop <= 0;
+    const atBottom = tw.scrollTop >= tw.scrollHeight - tw.clientHeight - 1;
+    // Block the gesture only when it would overscroll past a boundary
+    if ((atLeft && dx > 0) || (atRight && dx < 0) ||
+        (atTop && dy > 0) || (atBottom && dy < 0)) {
+      e.preventDefault();
+    }
+  }, { passive: false });
 }
 
 let searchText = '';

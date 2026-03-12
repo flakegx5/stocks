@@ -335,11 +335,17 @@ tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
 
   /* Sticky col widths (compact on mobile) */
   thead th:nth-child(1) { min-width: 64px; max-width: 64px; left: 0; }
-  thead th:nth-child(2) { min-width: 88px; max-width: 88px; left: 64px; }
+  thead th:nth-child(2) { min-width: 76px; max-width: 76px; left: 64px; }
   td:nth-child(1) { min-width: 64px; max-width: 64px; left: 0; }
-  td:nth-child(2) { min-width: 88px; max-width: 88px; left: 64px; }
+  td:nth-child(2) { min-width: 76px; max-width: 76px; left: 64px; }
   tbody tr:nth-child(even) td:nth-child(2),
   tbody tr:nth-child(odd)  td:nth-child(2) { left: 64px; }
+
+  /* Ranking columns — narrow + centered (fits 5 cols in remaining ~220px) */
+  th.col-rank, td.col-rank {
+    min-width: 44px; max-width: 44px; width: 44px;
+    text-align: center; padding: 0 2px;
+  }
 
   /* Column picker — bottom sheet */
   .col-picker {
@@ -717,6 +723,8 @@ let visibleFixedCols = new Set(FIXED_TOGGLEABLE_NAMES.filter(n => !FIXED_DEFAULT
 // Mobile detection & defaults
 const isMobile = () => window.innerWidth < 768;
 const MOBILE_COMPUTED_VISIBLE = new Set(['低估排名', '成长排名', '质量排名', '股东回报排名', '综合排名']);
+// Abbreviated headers for mobile — allows narrow 44px columns
+const MOBILE_COL_ALIAS = { '低估排名': '低估', '成长排名': '成长', '质量排名': '质量', '股东回报排名': '回报', '综合排名': '综合' };
 if (isMobile()) {
   visibleMetrics      = new Set();                         // no period metrics
   visibleComputedCols = new Set(MOBILE_COMPUTED_VISIBLE);  // only rankings
@@ -887,6 +895,11 @@ function buildHeader() {
     } else {
       metric = cleanColName(col.name); date = '';
     }
+    // Mobile: use abbreviated name for ranking cols
+    if (isMobile() && MOBILE_COL_ALIAS[col.name]) {
+      metric = MOBILE_COL_ALIAS[col.name];
+      th.classList.add('col-rank');
+    }
     const unit = headerUnitOverride[col.idx] ?? getColUnit(col);
     const unitHtml = unit ? `<span class="th-unit">${unit}</span>` : '';
     th.innerHTML = `<span class="th-metric">${metric}</span>${unitHtml}${date ? `<span class="th-date">${date}</span>` : ''}`;
@@ -911,15 +924,16 @@ function buildBody() {
     const row = DATA.rows[ri];
     html += `<tr>`;
     colDefs.forEach((col, pos) => {
-      const rawVal = col.idx === 0 ? (rowPos + 1) : (row[col.idx] ?? '--');
-      let cls = '';
+      const rawVal = row[col.idx] ?? '--';
+      const classes = [];
       if (pos >= 2) {
         const n = parseNum(String(rawVal));
-        if (n !== null && n < 0) cls = ' class="neg"';
-        else if (n !== null && n > 0 && col.idx >= 4) cls = ' class="pos"';
+        if (n !== null && n < 0) classes.push('neg');
+        else if (n !== null && n > 0 && col.idx >= 4) classes.push('pos');
       }
-      const displayVal = col.idx === 0 ? rawVal : fmtCell(rawVal, col);
-      html += `<td${cls}>${displayVal}</td>`;
+      if (isMobile() && MOBILE_COL_ALIAS[col.name]) classes.push('col-rank');
+      const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+      html += `<td${cls}>${fmtCell(rawVal, col)}</td>`;
     });
     html += '</tr>';
   });

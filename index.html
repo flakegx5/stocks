@@ -124,6 +124,7 @@ thead th.sort-desc::after { content: ' ▼'; color: #c41e3a; font-size: 10px; }
 thead th .th-metric { display: block; font-weight: 600; color: #1e293b; }
 thead th .th-unit  { display: block; font-size: 9px; color: #64748b; margin-top: 1px; font-weight: 400; }
 thead th .th-date  { display: block; font-size: 10px; color: #94a3b8; margin-top: 1px; }
+thead th .th-rank-group { display: block; font-size: 9px; color: #94a3b8; font-weight: 400; margin-bottom: 1px; }
 
 /* Sticky cols in header */
 thead th:nth-child(1) { position: sticky; left: 0; z-index: 20; min-width: 80px; max-width: 80px; will-change: transform; }
@@ -367,12 +368,13 @@ tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
   }
   #mainTable.table-has-code thead th:nth-child(2) {
     position: sticky; z-index: 20;
-    min-width: 80px; max-width: 80px; left: 64px; will-change: transform;
+    min-width: 104px; max-width: 104px; left: 64px; will-change: transform;
   }
   #mainTable.table-has-code td:nth-child(2) {
     position: sticky; z-index: 5;
-    min-width: 80px; max-width: 80px; left: 64px;
+    min-width: 104px; max-width: 104px; left: 64px;
     font-weight: 500; color: #1a2332; border-right: 2px solid #c0c8d8; will-change: transform;
+    white-space: normal; word-break: break-all; line-height: 1.35;
   }
   #mainTable.table-has-code tbody tr:nth-child(even) td:nth-child(2),
   #mainTable.table-has-code tbody tr:nth-child(odd)  td:nth-child(2) { left: 64px; }
@@ -756,7 +758,7 @@ const MOBILE_COMPUTED_VISIBLE = new Set(['低估排名', '成长排名', '质量
 if (isMobile()) {
   visibleMetrics      = new Set();                         // no period metrics
   visibleComputedCols = new Set(MOBILE_COMPUTED_VISIBLE);  // only rankings
-  visibleFixedCols    = new Set();                         // no optional fixed cols
+  visibleFixedCols    = new Set(['股票代码']);               // show code column by default
 
   // Scroll boundary: rely on CSS overscroll-behavior:none + touch-action.
   // No JS passive:false handler — that blocks the render thread and causes jank.
@@ -931,7 +933,11 @@ function buildHeader() {
     }
     const unit = headerUnitOverride[col.idx] ?? getColUnit(col);
     const unitHtml = unit ? `<span class="th-unit">${unit}</span>` : '';
-    th.innerHTML = `<span class="th-metric">${metric}</span>${unitHtml}${date ? `<span class="th-date">${date}</span>` : ''}`;
+    if (isMobile() && metric.endsWith('排名')) {
+      th.innerHTML = `<span class="th-rank-group">排名维度</span><span class="th-metric">${metric.slice(0, -2)}</span>`;
+    } else {
+      th.innerHTML = `<span class="th-metric">${metric}</span>${unitHtml}${date ? `<span class="th-date">${date}</span>` : ''}`;
+    }
     th.dataset.colidx = col.idx;
     th.dataset.group = col.group;
     if (col.group !== prevGroup) { th.classList.add('group-start'); prevGroup = col.group; }
@@ -1215,7 +1221,7 @@ document.getElementById('resetView').addEventListener('click', () => {
   if (isMobile()) {
     visibleMetrics      = new Set();
     visibleComputedCols = new Set(MOBILE_COMPUTED_VISIBLE);
-    visibleFixedCols    = new Set();
+    visibleFixedCols    = new Set(['股票代码']);
   } else {
     visiblePeriods      = new Set(PERIODS);
     visibleMetrics      = new Set(METRICS.filter(m => !METRICS_DEFAULT_HIDDEN.has(m)));

@@ -335,11 +335,12 @@ tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
 
   /* Mobile col layout: 代码隐藏 → 简称=nth-child(1), 第一排名列=nth-child(2) */
   /* nth-child(1) = 简称: sticky left:0, 调整为简称的样式 */
-  thead th:nth-child(1) { min-width: 80px; max-width: 80px; left: 0; }
+  thead th:nth-child(1) { min-width: 104px; max-width: 104px; left: 0; }
   td:nth-child(1) {
-    min-width: 80px; max-width: 80px; left: 0;
+    min-width: 104px; max-width: 104px; left: 0;
     font-family: inherit; font-weight: 500; color: #1a2332;
     border-right: 2px solid #c0c8d8;
+    white-space: normal; word-break: break-all; line-height: 1.35;
   }
   /* nth-child(2) = 低估排名（默认代码隐藏时）: 取消横向固定，保留表头吸顶(position:sticky top:0由base CSS继承) */
   thead th:nth-child(2) { left: auto; z-index: 10; min-width: auto; max-width: none; will-change: auto; }

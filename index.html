@@ -341,7 +341,7 @@ tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
     font-family: inherit; font-weight: 500; color: #1a2332;
     border-right: 2px solid #c0c8d8;
   }
-  /* nth-child(2) = 低估排名: 取消粘性及代码列特殊样式 */
+  /* nth-child(2) = 低估排名（默认代码隐藏时）: 取消粘性及代码列特殊样式 */
   thead th:nth-child(2) { position: static; left: auto; min-width: auto; max-width: none; will-change: auto; }
   td:nth-child(2) {
     position: static; left: auto; min-width: auto; max-width: none;
@@ -349,6 +349,27 @@ tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
   }
   tbody tr:nth-child(even) td:nth-child(2),
   tbody tr:nth-child(odd)  td:nth-child(2) { left: auto; }
+
+  /* 代码列被用户勾选时: 代码=nth-child(1), 简称=nth-child(2), 恢复双列 sticky */
+  #mainTable.table-has-code thead th:nth-child(1) {
+    min-width: 64px; max-width: 64px; left: 0; will-change: transform;
+  }
+  #mainTable.table-has-code td:nth-child(1) {
+    min-width: 64px; max-width: 64px; left: 0;
+    font-family: monospace; font-weight: normal; color: #555;
+    border-right: 1px solid #e6e9f0; will-change: transform;
+  }
+  #mainTable.table-has-code thead th:nth-child(2) {
+    position: sticky; z-index: 20;
+    min-width: 80px; max-width: 80px; left: 64px; will-change: transform;
+  }
+  #mainTable.table-has-code td:nth-child(2) {
+    position: sticky; z-index: 5;
+    min-width: 80px; max-width: 80px; left: 64px;
+    font-weight: 500; color: #1a2332; border-right: 2px solid #c0c8d8; will-change: transform;
+  }
+  #mainTable.table-has-code tbody tr:nth-child(even) td:nth-child(2),
+  #mainTable.table-has-code tbody tr:nth-child(odd)  td:nth-child(2) { left: 64px; }
 
   /* Column picker — bottom sheet */
   .col-picker {
@@ -787,12 +808,17 @@ function buildColPicker() {
   }
 
   function makeFixedSection() {
-    if (!FIXED_TOGGLEABLE_NAMES.length) return '';
+    const codeColName = isMobile() ? (COLS.find(c => c.idx === 1)?.name) : null;
+    if (!FIXED_TOGGLEABLE_NAMES.length && !codeColName) return '';
     let h = `<div class="cp-group"><div class="cp-group-hdr">
       <span class="cp-group-name">基本信息</span>
       <button class="cp-group-btn" data-sec="fixed" data-a="all">全选</button>
       <button class="cp-group-btn" data-sec="fixed" data-a="none">全不选</button>
       </div><div class="cp-cols">`;
+    // Mobile: 代码列是 locked 不在默认列表，但手机端允许用户手动勾选
+    if (codeColName) {
+      h += `<label class="cp-col"><input type="checkbox" data-sec="fixed" data-val="${codeColName}" ${visibleFixedCols.has(codeColName)?'checked':''}> ${codeColName}</label>`;
+    }
     FIXED_TOGGLEABLE_NAMES.forEach(n => {
       h += `<label class="cp-col"><input type="checkbox" data-sec="fixed" data-val="${n}" ${visibleFixedCols.has(n)?'checked':''}> ${n}</label>`;
     });
@@ -857,8 +883,8 @@ document.getElementById('cpOverlay').addEventListener('click', closeColPicker);
 // ---- Visible col defs ----
 function getVisibleColDefs() {
   return COLS.filter(col => {
-    if (col.idx === 0) return false;                      // 序号列已移除
-    if (isMobile() && col.idx === 1) return false;        // 代码列手机端默认不展现
+    if (col.idx === 0) return false;                                       // 序号列已移除
+    if (isMobile() && col.idx === 1) return visibleFixedCols.has(col.name); // 代码列手机端可选
     if (col.locked) return true;
     if (col.group === '基本信息') return visibleFixedCols.has(col.name);
     if (col.group === '计算指标') return visibleComputedCols.has(col.name);
@@ -911,6 +937,12 @@ function buildHeader() {
   });
   thead.innerHTML = '';
   thead.appendChild(tr);
+  // Mobile: toggle class so CSS can adjust sticky column offsets
+  if (isMobile()) {
+    document.getElementById('mainTable').classList.toggle(
+      'table-has-code', getVisibleColDefs().some(c => c.idx === 1)
+    );
+  }
 }
 
 // ---- Build body ----

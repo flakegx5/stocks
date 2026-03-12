@@ -122,9 +122,8 @@ thead th .th-unit  { display: block; font-size: 9px; color: #64748b; margin-top:
 thead th .th-date  { display: block; font-size: 10px; color: #94a3b8; margin-top: 1px; }
 
 /* Sticky cols in header */
-thead th:nth-child(1) { position: sticky; left: 0; z-index: 20; min-width: 48px; max-width: 48px; }
-thead th:nth-child(2) { position: sticky; left: 48px; z-index: 20; min-width: 80px; max-width: 80px; }
-thead th:nth-child(3) { position: sticky; left: 128px; z-index: 20; min-width: 110px; max-width: 110px; }
+thead th:nth-child(1) { position: sticky; left: 0; z-index: 20; min-width: 80px; max-width: 80px; }
+thead th:nth-child(2) { position: sticky; left: 80px; z-index: 20; min-width: 110px; max-width: 110px; }
 
 /* Column group colors — only .group-start (first col of each group) shows a colored border */
 th.group-start[data-group="基本信息"]   { border-left-color: #c41e3a; }
@@ -156,31 +155,24 @@ td {
   border-right: 1px solid #e6e9f0; border-bottom: 1px solid #e6e9f0;
   text-align: right; vertical-align: middle; font-size: 12px;
 }
-td:nth-child(1), td:nth-child(2), td:nth-child(3) { text-align: left; }
+td:nth-child(1), td:nth-child(2) { text-align: left; }
 td.neg { color: #c42e10; }
 td.pos { color: #1a7040; }
 
 /* Sticky body cells */
 td:nth-child(1) {
   position: sticky; left: 0; z-index: 5; background: inherit;
-  min-width: 48px; max-width: 48px; text-align: center; color: #888;
-  border-right: 2px solid #e0e3ea;
-}
-td:nth-child(2) {
-  position: sticky; left: 48px; z-index: 5; background: inherit;
   min-width: 80px; max-width: 80px; font-family: monospace; color: #555;
 }
-td:nth-child(3) {
-  position: sticky; left: 128px; z-index: 5; background: inherit;
+td:nth-child(2) {
+  position: sticky; left: 80px; z-index: 5; background: inherit;
   min-width: 110px; max-width: 110px; font-weight: 500; color: #1a2332;
   border-right: 2px solid #c0c8d8;
 }
 tbody tr:nth-child(even) td:nth-child(1),
-tbody tr:nth-child(even) td:nth-child(2),
-tbody tr:nth-child(even) td:nth-child(3) { background: #f8f9fc; }
+tbody tr:nth-child(even) td:nth-child(2) { background: #f8f9fc; }
 tbody tr:nth-child(odd) td:nth-child(1),
-tbody tr:nth-child(odd) td:nth-child(2),
-tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
+tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
 
 /* Export button */
 .btn-export { background: #15803d; color: #fff; border-color: #15803d; box-shadow: 0 1px 3px rgba(21,128,61,.2); }
@@ -337,16 +329,12 @@ tbody tr:nth-child(odd) td:nth-child(3) { background: #fff; }
   td { height: 36px; font-size: 11.5px; padding: 0 5px; }
 
   /* Sticky col widths (compact on mobile) */
-  thead th:nth-child(1) { min-width: 36px; max-width: 36px; }
-  thead th:nth-child(2) { min-width: 64px; max-width: 64px; left: 36px; }
-  thead th:nth-child(3) { min-width: 88px; max-width: 88px; left: 100px; }
-  td:nth-child(1) { min-width: 36px; max-width: 36px; }
-  td:nth-child(2) { min-width: 64px; max-width: 64px; left: 36px; }
-  td:nth-child(3) { min-width: 88px; max-width: 88px; left: 100px; }
+  thead th:nth-child(1) { min-width: 64px; max-width: 64px; left: 0; }
+  thead th:nth-child(2) { min-width: 88px; max-width: 88px; left: 64px; }
+  td:nth-child(1) { min-width: 64px; max-width: 64px; left: 0; }
+  td:nth-child(2) { min-width: 88px; max-width: 88px; left: 64px; }
   tbody tr:nth-child(even) td:nth-child(2),
-  tbody tr:nth-child(odd)  td:nth-child(2) { left: 36px; }
-  tbody tr:nth-child(even) td:nth-child(3),
-  tbody tr:nth-child(odd)  td:nth-child(3) { left: 100px; }
+  tbody tr:nth-child(odd)  td:nth-child(2) { left: 64px; }
 
   /* Column picker — bottom sheet */
   .col-picker {
@@ -716,7 +704,7 @@ const METRICS_DEFAULT_HIDDEN   = new Set(_d.metrics_hidden);
 const COMPUTED_DEFAULT_HIDDEN  = new Set(_d.computed_hidden);
 const FIXED_DEFAULT_HIDDEN     = new Set(_d.fixed_hidden || []);
 const FIXED_TOGGLEABLE_NAMES   = COLS.filter(c => c.group === '基本信息' && !c.locked).map(c => c.name);
-let sortCol = -1, sortDir = 'asc';
+let sortCol = 37, sortDir = 'asc';   // 默认按综合排名升序
 let visiblePeriods = new Set(PERIODS);
 let visibleMetrics = new Set(METRICS.filter(m => !METRICS_DEFAULT_HIDDEN.has(m)));
 let visibleComputedCols = new Set(COMPUTED_COL_NAMES.filter(n => !COMPUTED_DEFAULT_HIDDEN.has(n)));
@@ -758,7 +746,7 @@ if (isMobile()) {
 
 let searchText = '';
 let filterIndustry = '';
-let filterStockType = '';
+let filterStockType = '非金融股';   // 默认筛选非金融股
 let filters = {};   // {colIdx: {op, val}}
 let displayIndices = [];
 
@@ -878,6 +866,7 @@ document.getElementById('cpOverlay').addEventListener('click', closeColPicker);
 // ---- Visible col defs ----
 function getVisibleColDefs() {
   return COLS.filter(col => {
+    if (col.idx === 0) return false;  // 序号列已移除
     if (col.locked) return true;
     if (col.group === '基本信息') return visibleFixedCols.has(col.name);
     if (col.group === '计算指标') return visibleComputedCols.has(col.name);
@@ -942,7 +931,7 @@ function buildBody() {
     colDefs.forEach((col, pos) => {
       const rawVal = col.idx === 0 ? (rowPos + 1) : (row[col.idx] ?? '--');
       let cls = '';
-      if (pos >= 3) {
+      if (pos >= 2) {
         const n = parseNum(String(rawVal));
         if (n !== null && n < 0) cls = ' class="neg"';
         else if (n !== null && n > 0 && col.idx >= 4) cls = ' class="pos"';
@@ -1187,11 +1176,11 @@ document.getElementById('filterToggleBtn').addEventListener('click', () => {
 });
 
 document.getElementById('resetView').addEventListener('click', () => {
-  sortCol = -1; sortDir = 'asc';
-  searchText = ''; filterIndustry = ''; filterStockType = '';
+  sortCol = 37; sortDir = 'asc';
+  searchText = ''; filterIndustry = ''; filterStockType = '非金融股';
   filters = {}; pendingFilters = {};
   document.getElementById('searchBox').value = '';
-  document.getElementById('stockTypeFilter').value = '';
+  document.getElementById('stockTypeFilter').value = '非金融股';
   document.getElementById('industryFilter').value = '';
   if (isMobile()) {
     visibleMetrics      = new Set();
@@ -1223,6 +1212,7 @@ document.getElementById('rulesClose').addEventListener('click', closeRules);
 document.getElementById('rulesOverlay').addEventListener('click', closeRules);
 
 // ---- Init ----
+document.getElementById('stockTypeFilter').value = filterStockType;
 render();
 </script>
 </body>

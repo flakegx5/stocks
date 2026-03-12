@@ -704,7 +704,7 @@ const METRICS_DEFAULT_HIDDEN   = new Set(_d.metrics_hidden);
 const COMPUTED_DEFAULT_HIDDEN  = new Set(_d.computed_hidden);
 const FIXED_DEFAULT_HIDDEN     = new Set(_d.fixed_hidden || []);
 const FIXED_TOGGLEABLE_NAMES   = COLS.filter(c => c.group === '基本信息' && !c.locked).map(c => c.name);
-let sortCol = 37, sortDir = 'asc';   // 默认按综合排名升序
+let sortCol = 39, sortDir = 'asc';   // 默认按综合排名升序
 let visiblePeriods = new Set(PERIODS);
 let visibleMetrics = new Set(METRICS.filter(m => !METRICS_DEFAULT_HIDDEN.has(m)));
 let visibleComputedCols = new Set(COMPUTED_COL_NAMES.filter(n => !COMPUTED_DEFAULT_HIDDEN.has(n)));
@@ -1176,7 +1176,7 @@ document.getElementById('filterToggleBtn').addEventListener('click', () => {
 });
 
 document.getElementById('resetView').addEventListener('click', () => {
-  sortCol = 37; sortDir = 'asc';
+  sortCol = 39; sortDir = 'asc';
   searchText = ''; filterIndustry = ''; filterStockType = '非金融股';
   filters = {}; pendingFilters = {};
   document.getElementById('searchBox').value = '';

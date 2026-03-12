@@ -341,14 +341,19 @@ tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
     font-family: inherit; font-weight: 500; color: #1a2332;
     border-right: 2px solid #c0c8d8;
   }
-  /* nth-child(2) = 低估排名（默认代码隐藏时）: 取消粘性及代码列特殊样式 */
-  thead th:nth-child(2) { position: static; left: auto; min-width: auto; max-width: none; will-change: auto; }
+  /* nth-child(2) = 低估排名（默认代码隐藏时）: 取消横向固定，保留表头吸顶(position:sticky top:0由base CSS继承) */
+  thead th:nth-child(2) { left: auto; z-index: 10; min-width: auto; max-width: none; will-change: auto; }
   td:nth-child(2) {
     position: static; left: auto; min-width: auto; max-width: none;
-    font-weight: normal; color: inherit; border-right: 1px solid #e6e9f0; will-change: auto;
+    font-weight: normal; color: inherit; text-align: right;
+    border-right: 1px solid #e6e9f0; will-change: auto;
   }
+  /* 恢复 pos/neg 颜色：与 td:nth-child(2) 优先级相同，放在其后使其生效 */
+  td.pos { color: #1a7040; }
+  td.neg { color: #c42e10; }
+  /* 重置奇偶行背景，避免与其他列视觉不一致 */
   tbody tr:nth-child(even) td:nth-child(2),
-  tbody tr:nth-child(odd)  td:nth-child(2) { left: auto; }
+  tbody tr:nth-child(odd)  td:nth-child(2) { left: auto; background: inherit; }
 
   /* 代码列被用户勾选时: 代码=nth-child(1), 简称=nth-child(2), 恢复双列 sticky */
   #mainTable.table-has-code thead th:nth-child(1) {

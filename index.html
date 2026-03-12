@@ -101,7 +101,11 @@ body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", 
 .sb-meta { margin-left: auto; font-size: 11px; color: #9ca3af; flex-shrink: 0; padding-left: 16px; }
 
 /* Table wrapper */
-.table-wrap { overflow: auto; height: calc(100vh - 142px); overscroll-behavior: none; }
+.table-wrap {
+  overflow: auto; height: calc(100vh - 142px); overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;  /* momentum scroll on legacy WebView */
+  will-change: scroll-position;
+}
 
 /* Table */
 table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
@@ -122,8 +126,8 @@ thead th .th-unit  { display: block; font-size: 9px; color: #64748b; margin-top:
 thead th .th-date  { display: block; font-size: 10px; color: #94a3b8; margin-top: 1px; }
 
 /* Sticky cols in header */
-thead th:nth-child(1) { position: sticky; left: 0; z-index: 20; min-width: 80px; max-width: 80px; }
-thead th:nth-child(2) { position: sticky; left: 80px; z-index: 20; min-width: 110px; max-width: 110px; }
+thead th:nth-child(1) { position: sticky; left: 0; z-index: 20; min-width: 80px; max-width: 80px; will-change: transform; }
+thead th:nth-child(2) { position: sticky; left: 80px; z-index: 20; min-width: 110px; max-width: 110px; will-change: transform; }
 
 /* Column group colors — only .group-start (first col of each group) shows a colored border */
 th.group-start[data-group="基本信息"]   { border-left-color: #c41e3a; }
@@ -163,11 +167,12 @@ td.pos { color: #1a7040; }
 td:nth-child(1) {
   position: sticky; left: 0; z-index: 5; background: inherit;
   min-width: 80px; max-width: 80px; font-family: monospace; color: #555;
+  will-change: transform;
 }
 td:nth-child(2) {
   position: sticky; left: 80px; z-index: 5; background: inherit;
   min-width: 110px; max-width: 110px; font-weight: 500; color: #1a2332;
-  border-right: 2px solid #c0c8d8;
+  border-right: 2px solid #c0c8d8; will-change: transform;
 }
 tbody tr:nth-child(even) td:nth-child(1),
 tbody tr:nth-child(even) td:nth-child(2) { background: #f8f9fc; }
@@ -717,31 +722,8 @@ if (isMobile()) {
   visibleComputedCols = new Set(MOBILE_COMPUTED_VISIBLE);  // only rankings
   visibleFixedCols    = new Set();                         // no optional fixed cols
 
-  // Prevent the table-wrap container from being dragged by WebView (e.g. WeChat).
-  // When the user swipes past the horizontal scroll boundary, block the native gesture
-  // so it doesn't translate the whole element.
-  document.addEventListener('touchstart', function(e) {
-    const tw = e.target.closest('.table-wrap');
-    if (!tw) return;
-    tw._touchStartX = e.touches[0].clientX;
-    tw._touchStartY = e.touches[0].clientY;
-  }, { passive: true });
-
-  document.addEventListener('touchmove', function(e) {
-    const tw = e.target.closest('.table-wrap');
-    if (!tw) return;
-    const dx = e.touches[0].clientX - tw._touchStartX;
-    const dy = e.touches[0].clientY - tw._touchStartY;
-    const atLeft   = tw.scrollLeft <= 0;
-    const atRight  = tw.scrollLeft >= tw.scrollWidth - tw.clientWidth - 1;
-    const atTop    = tw.scrollTop <= 0;
-    const atBottom = tw.scrollTop >= tw.scrollHeight - tw.clientHeight - 1;
-    // Block the gesture only when it would overscroll past a boundary
-    if ((atLeft && dx > 0) || (atRight && dx < 0) ||
-        (atTop && dy > 0) || (atBottom && dy < 0)) {
-      e.preventDefault();
-    }
-  }, { passive: false });
+  // Scroll boundary: rely on CSS overscroll-behavior:none + touch-action.
+  // No JS passive:false handler — that blocks the render thread and causes jank.
 }
 
 let searchText = '';

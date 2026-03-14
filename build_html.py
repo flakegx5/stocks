@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build self-contained HTML page for HK stock data (new object-format input)."""
 import json, re, os
+from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -788,6 +789,7 @@ _data_bundle = {
     'row_count': len(rows),
     'computed_col_names': list(COMPUTED_COL_DEFS),
     'computed_yi_cols': [10 + i for i, n in enumerate(COMPUTED_COL_DEFS) if n in COMPUTED_YI_NAMES],
+    'update_time': datetime.now().strftime('%Y-%m-%d %H:%M'),
     'filter_cols': [
         {'idx': 10 + COMPUTED_COL_DEFS.index(name), 'name': name, 'unit': unit, 'isYi': name in COMPUTED_YI_NAMES}
         for name, unit in _FILTER_SPECS

@@ -279,7 +279,10 @@ def _get_float(obj, raw_metric, period_label):
 def _is_jinrong(obj):
     ind  = str(obj.get('港股@所属恒生行业(二级)', '') or '')
     name = str(obj.get('股票简称', '') or '')
-    return ind in JINRONG_SET or (ind == '综合企业' and '中信股份' in name)
+    if ind == '综合企业' and '中信股份' in name:
+        obj['港股@所属恒生行业(二级)'] = '其他金融'
+        return True
+    return ind in JINRONG_SET
 
 def _has_any_roic(obj):
     for _, label in PERIOD_DATES:

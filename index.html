@@ -41,6 +41,10 @@ body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", 
 .controls input[type=search]:focus, .controls select:focus {
   border-color: #c41e3a; box-shadow: 0 0 0 3px rgba(196,30,58,.1); }
 .controls select { max-width: 140px; }
+.queue-toggles { display: flex; background: #f1f4f8; border-radius: 7px; padding: 2px; border: 1px solid #d1d5db; }
+.queue-btn { height: 25px; padding: 0 12px; border: none; background: transparent; color: #64748b; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 5px; transition: all .15s; box-shadow: none; }
+.queue-btn:hover { color: #1e293b; }
+.queue-btn.active { background: #fff; color: #c41e3a; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
 .btn { height: 31px; padding: 0 13px; border: 1px solid #d1d5db; border-radius: 7px;
   background: #fff; cursor: pointer; font-size: 12.5px; color: #374151; white-space: nowrap;
   box-shadow: 0 1px 2px rgba(0,0,0,.04); transition: background .12s, border-color .12s; font-weight: 500; }
@@ -153,12 +157,14 @@ th.group-start[data-group="支付股息"]   { border-left-color: #d97706; }
 thead th:not(.group-start) { border-left-color: transparent; }
 
 /* Body */
-tbody tr:nth-child(even) { background: #f8f9fc; }
+tbody tr:nth-child(even) { background: #f9fafb; }
+tbody tr:nth-child(odd) { background: #ffffff; }
 tbody tr:hover td { background: #fef2f4 !important; }
 td {
   padding: 0 8px; height: 32px; white-space: nowrap;
   border-right: 1px solid #e6e9f0; border-bottom: 1px solid #e6e9f0;
   text-align: right; vertical-align: middle; font-size: 12px;
+  background: inherit;
 }
 td:nth-child(1), td:nth-child(2) { text-align: left; }
 td.neg { color: #c42e10; }
@@ -166,19 +172,20 @@ td.pos { color: #1a7040; }
 
 /* Sticky body cells */
 td:nth-child(1) {
-  position: sticky; left: 0; z-index: 5; background: inherit;
+  position: sticky; left: 0; z-index: 5;
   min-width: 80px; max-width: 80px; font-family: monospace; color: #555;
   will-change: transform;
 }
 td:nth-child(2) {
-  position: sticky; left: 80px; z-index: 5; background: inherit;
+  position: sticky; left: 80px; z-index: 5;
   min-width: 110px; max-width: 110px; font-weight: 500; color: #1a2332;
   border-right: 2px solid #c0c8d8; will-change: transform;
 }
-tbody tr:nth-child(even) td:nth-child(1),
-tbody tr:nth-child(even) td:nth-child(2) { background: #f8f9fc; }
-tbody tr:nth-child(odd) td:nth-child(1),
-tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
+/* Standardize zebra stripes by using background: inherit on sticky cells */
+#mainTable.table-has-code td:nth-child(1),
+#mainTable.table-has-code td:nth-child(2),
+td:nth-child(1),
+td:nth-child(2) { background: inherit; }
 
 /* Export button */
 .btn-export { background: #15803d; color: #fff; border-color: #15803d; box-shadow: 0 1px 3px rgba(21,128,61,.2); }
@@ -340,8 +347,9 @@ tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
   td:nth-child(1) {
     min-width: 104px; max-width: 104px; left: 0;
     font-family: inherit; font-weight: 500; color: #1a2332;
-    border-right: 2px solid #c0c8d8;
+    border-right: 2px solid #c0c8d8; will-change: transform;
     white-space: normal; word-break: break-all; line-height: 1.35;
+    text-align: left;
   }
   /* nth-child(2) = 低估排名（默认代码隐藏时）: 取消横向固定，保留表头吸顶(position:sticky top:0由base CSS继承) */
   thead th:nth-child(2) { left: auto; z-index: 10; min-width: auto; max-width: none; will-change: auto; }
@@ -355,7 +363,7 @@ tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
   td.neg { color: #c42e10; }
   /* 重置奇偶行背景，避免与其他列视觉不一致 */
   tbody tr:nth-child(even) td:nth-child(2),
-  tbody tr:nth-child(odd)  td:nth-child(2) { left: auto; background: inherit; }
+  tbody tr:nth-child(odd)  td:nth-child(2) { left: auto; }
 
   /* 代码列被用户勾选时: 代码=nth-child(1), 简称=nth-child(2), 恢复双列 sticky */
   #mainTable.table-has-code thead th:nth-child(1) {
@@ -445,12 +453,10 @@ tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
 
 <div class="controls">
   <input type="search" id="searchBox" placeholder="搜索代码/名称…">
-  <select id="stockTypeFilter">
-    <option value="">所有类型</option>
-    <option value="金融股">金融股</option>
-    <option value="非金融股">非金融股</option>
-    <option value="其他">其他</option>
-  </select>
+  <div class="queue-toggles">
+    <button id="btnQueueFei" class="btn queue-btn active" data-type="非金融股">非金融股队列</button>
+    <button id="btnQueueJin" class="btn queue-btn" data-type="金融股">金融股队列</button>
+  </div>
   <select id="industryFilter">
     <option value="">所有行业</option>
   </select>
@@ -502,10 +508,6 @@ tbody tr:nth-child(odd) td:nth-child(2) { background: #fff; }
     <span class="sb-total" id="sTotalCount">-</span>
     <span class="sb-unit">只</span>
   </div>
-  <div class="sb-stat"><span class="sb-lbl">总市值</span><strong id="sTotalMkt">-</strong></div>
-  <div class="sb-stat"><span class="sb-lbl">平均PE</span><strong id="sAvgPE">-</strong></div>
-  <div class="sb-stat"><span class="sb-lbl">平均PB</span><strong id="sAvgPB">-</strong></div>
-  <div class="sb-stat"><span class="sb-lbl">TTMROE</span><strong id="sAvgROE">-</strong></div>
   <span class="sb-meta">更新时间：<span id="updateTime">-</span> · 市值≥50亿港元 · 同花顺问财</span>
 </div>
 
@@ -648,7 +650,6 @@ const ROIC_END   = _d.roic_end;     // last ROIC period col
 const TTMROE_IDX  = _d.ttmroe_idx;  // computed TTMROE col
 const TTMROIC_IDX = _d.ttmroic_idx; // computed TTMROIC col
 // Inject dynamic content from data.js
-document.getElementById('industryFilter').insertAdjacentHTML('beforeend', _d.industry_html);
 document.getElementById('sTotalCount').textContent = _d.row_count;
 
 // Percentage-type metrics — do NOT convert to 亿
@@ -738,8 +739,7 @@ function hasAnyROIC(row) {
 
 function getStockType(row) {
   if (isJinRong(row)) return '金融股';
-  if (hasAnyROIC(row)) return '非金融股';
-  return '其他';
+  return '非金融股'; // Merge everything else into 非金融股
 }
 
 // ---- State ----
@@ -961,8 +961,8 @@ function buildHeader() {
     }
     const unit = headerUnitOverride[col.idx] ?? getColUnit(col);
     const unitHtml = unit ? `<span class="th-unit">${unit}</span>` : '';
-    if (isMobile() && metric.endsWith('排名')) {
-      th.innerHTML = `<span class="th-rank-group">排名维度</span><span class="th-metric">${metric.slice(0, -2)}</span>`;
+    if (isMobile() && (metric.endsWith('排名') || metric === '综合分数')) {
+      th.innerHTML = `<span class="th-rank-group">排名维度</span><span class="th-metric">${metric.replace('排名', '')}</span>`;
     } else {
       th.innerHTML = `<span class="th-metric">${metric}</span>${unitHtml}${date ? `<span class="th-date">${date}</span>` : ''}`;
     }
@@ -1029,10 +1029,38 @@ function buildBody() {
   document.getElementById('tableBody').innerHTML = html;
 }
 
+function updateIndustryFilter() {
+  const select = document.getElementById('industryFilter');
+  select.innerHTML = '<option value="">所有行业</option>';
+  
+  const industries = new Set();
+  DATA.rows.forEach(r => {
+    if (getStockType(r) === filterStockType && r[9]) {
+      industries.add(r[9]);
+    }
+  });
+  
+  Array.from(industries).sort().forEach(ind => {
+    const opt = document.createElement('option');
+    opt.value = ind;
+    opt.textContent = ind;
+    select.appendChild(opt);
+  });
+  
+  if (industries.has(filterIndustry)) {
+    select.value = filterIndustry;
+  } else {
+    filterIndustry = '';
+    select.value = '';
+  }
+}
+
 // ---- Filter & Sort ----
 function applyFilters() {
   let indices = DATA.rows.map((_, i) => i);
   if (filterStockType) indices = indices.filter(i => getStockType(DATA.rows[i]) === filterStockType);
+  document.getElementById('sTotalCount').textContent = indices.length; // Set base count before other filters
+  
   if (filterIndustry) indices = indices.filter(i => DATA.rows[i][9] === filterIndustry);
   if (searchText) {
     const t = searchText.toLowerCase();
@@ -1090,18 +1118,6 @@ function onSortClick(colidx) {
 // ---- Summary ----
 function updateSummary() {
   document.getElementById('sRowCount').textContent = displayIndices.length;
-  let totalMkt = 0, totalPE = 0, cPE = 0, totalPB = 0, cPB = 0, totalROE = 0, cROE = 0;
-  displayIndices.forEach(i => {
-    const r = DATA.rows[i];
-    const mkt = parseNum(r[5]); if (mkt && mkt > 0) totalMkt += mkt;
-    const pe = parseNum(r[6]);  if (pe && pe > 0 && pe < 1000) { totalPE += pe; cPE++; }
-    const pb = parseNum(r[7]);  if (pb && pb > 0 && pb < 100)  { totalPB += pb; cPB++; }
-    const roe = parseNum(r[TTMROE_IDX]); if (roe !== null) { totalROE += roe; cROE++; }
-  });
-  document.getElementById('sTotalMkt').textContent = fmtMktCap(totalMkt || null);
-  document.getElementById('sAvgPE').textContent = cPE ? (totalPE/cPE).toFixed(1)+'x' : '--';
-  document.getElementById('sAvgPB').textContent = cPB ? (totalPB/cPB).toFixed(2)+'x' : '--';
-  document.getElementById('sAvgROE').textContent = cROE ? (totalROE/cROE).toFixed(1)+'%' : '--';
 }
 
 // ---- Export Excel ----
@@ -1248,6 +1264,7 @@ function updateURLState() {
 
 function render(resetScroll = true) {
   if (resetScroll) resetVirtualScroll();
+  updateIndustryFilter();
   applyFilters();
   buildHeader();
   buildBody();
@@ -1261,9 +1278,15 @@ document.getElementById('searchBox').addEventListener('input', e => {
   render();
 });
 
-document.getElementById('stockTypeFilter').addEventListener('change', e => {
-  filterStockType = e.target.value;
-  render();
+document.querySelectorAll('.queue-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    document.querySelectorAll('.queue-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    filterStockType = e.target.getAttribute('data-type');
+    filterIndustry = ''; // Reset industry filter when changing queue
+    document.getElementById('industryFilter').value = '';
+    render();
+  });
 });
 
 document.getElementById('industryFilter').addEventListener('change', e => {
@@ -1326,7 +1349,10 @@ if (params.has('f')) {
 if (window.STOCK_DATA && window.STOCK_DATA.update_time) {
   document.getElementById('updateTime').innerText = window.STOCK_DATA.update_time;
 }
-document.getElementById('stockTypeFilter').value = filterStockType;
+document.querySelectorAll('.queue-btn').forEach(b => b.classList.remove('active'));
+const activeBtn = document.querySelector(`.queue-btn[data-type="${filterStockType}"]`) || document.getElementById('btnQueueFei');
+activeBtn.classList.add('active');
+filterStockType = activeBtn.getAttribute('data-type'); // Ensure it's not '其他' or empty
 document.getElementById('industryFilter').value = filterIndustry;
 document.getElementById('searchBox').value = searchText;
 render();

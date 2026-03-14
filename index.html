@@ -274,29 +274,24 @@ tbody td:nth-child(2) { background: inherit; }
 .rules-close:hover { color: #fff; }
 .rules-body { flex: 1; overflow-y: auto; padding: 20px 24px 28px;
   scrollbar-width: thin; scrollbar-color: #c0cce0 #f4f6fa; }
-.rules-body section { margin-bottom: 26px; }
-.rules-body h3 { font-size: 13px; font-weight: 700; color: #0d1e34;
-  margin: 0 0 11px; padding-bottom: 6px; border-bottom: 2px solid #c0cce0; }
-.rules-body h4 { font-size: 12px; font-weight: 600; color: #2a5080; margin: 14px 0 5px; }
-.rules-body p { margin: 0 0 7px; font-size: 12px; line-height: 1.7; color: #3a4e68; }
-.rules-body ul { margin: 4px 0 8px; padding-left: 18px; }
-.rules-body li { font-size: 12px; line-height: 1.75; color: #3a4e68; }
-.rules-body strong { color: #0d1e34; }
-.formula { background: #e8edf8; border-left: 3px solid #2a6fd6;
-  padding: 9px 13px; border-radius: 0 6px 6px 0;
+.rules-body section { margin-bottom: 28px; }
+.rules-body h3 { font-size: 15px; color: #111827; margin: 0 0 12px; padding-left: 10px; border-left: 4px solid #c41e3a; line-height: 1.2; font-weight: 700; }
+.rules-body h4 { font-size: 13px; color: #374151; margin: 16px 0 6px; font-weight: 600; }
+.rules-body p { margin: 8px 0; line-height: 1.6; color: #4b5563; font-size: 12.5px; }
+.formula { background: #fff; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 8px;
   font-size: 12px; color: #1a3a68; font-family: monospace;
-  margin: 5px 0 10px; line-height: 1.9; }
-.rtable { width: 100%; border-collapse: collapse; font-size: 12px; margin: 6px 0 12px; }
-.rtable th { background: #c41e3a; color: #fff; font-weight: 600;
-  padding: 8px 10px; text-align: left; border-bottom: 2px solid #a5172f; }
-.rtable td { padding: 8px 10px; border-bottom: 1px solid #d0d8e8;
-  color: #2c3e58; vertical-align: top; word-break: break-all; overflow-wrap: anywhere; }
-.rtable tr:nth-child(even) td { background: #edf0f8; }
-.rtable tr:last-child td { border-bottom: none; }
-.rtable td:first-child { color: #0d1e34; font-weight: 600; white-space: nowrap; }
-.cjin { color: #a06000; font-weight: 700; }
-.cfei { color: #0060b0; font-weight: 700; }
-.cnone { color: #b02020; font-weight: 600; }
+  margin: 5px 0 10px; line-height: 1.6; }
+.rtable { width: 100%; border-collapse: collapse; font-size: 12px; margin: 6px 0 12px; table-layout: fixed; min-width: 400px; }
+.rtable th { background: #f8fafc; color: #475569; font-weight: 600;
+  padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
+.rtable td { padding: 10px; border-bottom: 1px solid #f1f5f9;
+  color: #1e293b; vertical-align: middle; word-break: normal; }
+.rtable th:first-child, .rtable td:first-child { width: 95px; font-weight: 600; color: #111827; }
+.rules-notes { background: #fdf2f2; border-radius: 8px; padding: 12px; margin-top: 12px; border: 1px dashed #fca5a5; }
+.rules-notes p { margin: 4px 0; font-size: 11.5px; color: #991b1b; line-height: 1.5; }
+.cjin { color: #92400e; font-weight: 700; }
+.cfei { color: #1e40af; font-weight: 700; }
+.cnone { color: #b91c1c; font-weight: 600; }
 
 /* ============================================================
    Mobile (≤767px)
@@ -518,100 +513,94 @@ tbody td:nth-child(2) { background: inherit; }
   <div class="rules-body">
 
     <section>
-      <h3>一、最新报期 &amp; TTM 计算</h3>
-      <h4>最新财报季优先级</h4>
-      <p><strong>2025年报</strong> &gt; <strong>2025三季报</strong> &gt; <strong>2025中报</strong>（取最新已发布的报期）</p>
-      <h4>TTM（滚动12个月）算法</h4>
-      <p>对于现金流、净利润等<strong>累计类</strong>指标：</p>
-      <div class="formula">
-        若有年报 → 直接用年报值<br>
-        若有三季报 → TTM = 2025三季报 + 2024年报 − 2024三季报<br>
-        若有中报   → TTM = 2025中报   + 2024年报 − 2024中报
+      <h3>一、排名规则</h3>
+      <p>所有排名均在<strong>同类内</strong>独立进行：<span class="cjin">金融类股</span>与<span class="cfei">非金融股</span>互不干扰。采用标准竞争排名（1224式），排名数值<strong>越小越好</strong>。</p>
+      <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+        <table class="rtable">
+          <thead>
+            <tr><th>排名维度</th><th><span class="cjin">金融类股</span>逻辑</th><th><span class="cfei">非金融股</span>逻辑</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>低估排名</td>
+              <td>PE(TTM) <strong>升序</strong></td>
+              <td>股东收益率 <strong>降序</strong></td>
+            </tr>
+            <tr>
+              <td>成长排名</td>
+              <td colspan="2" style="text-align: center;">TTM净利同比 <strong>降序</strong></td>
+            </tr>
+            <tr>
+              <td>质量排名</td>
+              <td>TTMROE <strong>降序</strong></td>
+              <td>TTMROIC <strong>降序</strong></td>
+            </tr>
+            <tr>
+              <td>股东回报</td>
+              <td colspan="2" style="text-align: center;">股东回报分配率 <strong>降序</strong></td>
+            </tr>
+            <tr>
+              <td>综合排名</td>
+              <td colspan="2" style="text-align: center;">综合分数 <strong>升序</strong></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <p>对于 ROE、ROIC 等<strong>比率类</strong>指标（同上优先级，三季报/中报按如下处理）：</p>
-      <div class="formula">
-        若有完整同期数据 → TTM = 当期值 + 2024年报 − 同期2024报<br>
-        否则（无同期数据）→ 三季报 ÷ 3 × 4，中报 × 2（粗略折年）
+      <div class="rules-notes">
+        <p><strong>注1（剔除规则）：</strong>PE≤0、股东收益率≤0 或质量指标缺失者，不参与对应排名（显示为“--”），且自动失去综合排名资格。</p>
+        <p><strong>注2（末位填充）：</strong>同比数据缺失视为 0；股东回报分配率≤0 或缺失者计为队列末位名次。</p>
+        <p><strong>注3（权重分配）：</strong>综合分数 = 低估排名×0.4 + 成长排名×0.2 + 质量排名×0.2 + 股东回报排名×0.2。分数越低越优。</p>
       </div>
     </section>
 
     <section>
-      <h3>二、关键指标公式</h3>
-      <h4>TTMFCF（自由现金流）</h4>
-      <p>取以下两种算法的<strong>较大值</strong>（更保守，过滤账务异常）：</p>
+      <h3>二、指标计算公式</h3>
+      <h4>PE(TTM) &amp; PB（动态计算）</h4>
       <div class="formula">
-        方法一：经营现金流 + 资本支出（资本支出取负值流出部分，若为正则视为异常置空）<br>
-        方法二：经营现金流 + 投资现金流<br>
-        TTMFCF = max(方法一, 方法二)；金融股 → 置空
-      </div>
-      <h4>净现金</h4>
-      <div class="formula">
-        净现金 = 总现金 − 短期借款 − 长期借款<br>
-        （各项缺失视为 0；金融股 → 置空）
+        PE(TTM) = 当前总市值 ÷ TTM归母净利润（亏损时置空）<br>
+        PB = 当前总市值 ÷ 最新归母权益合计
       </div>
       <h4>股东收益率</h4>
       <div class="formula">
         股东收益率 = TTMFCF ÷ (总市值 + 净现金) × 100%<br>
-        分母 = 企业价值（EV）；金融股 → 置空
+        分母即企业价值（EV）；<span class="cjin">金融类股</span>不适用此指标
       </div>
-      <h4>PE(TTM) &amp; PB（动态计算）</h4>
+      <h4>TTMFCF（自由现金流）</h4>
       <div class="formula">
-        PE(TTM) = 总市值 ÷ TTM归母净利润（亏损时置空）<br>
-        PB      = 总市值 ÷ 最新净资产
+        取以下两路算法的较小值（取流出更多者，更保守）：<br>
+        1. 经营现金流 + 资本支出（支出取负值，正值视为异常置 0）<br>
+        2. 经营现金流 + 投资现金流<br>
+        TTMFCF = min(算法1, 算法2)；<span class="cjin">金融类股</span>置空
       </div>
-      <h4>预期25年度分红</h4>
+      <h4>净现金（有息负债视角）</h4>
       <div class="formula">
-        有 2025 年报数据 → 直接取 2025 年报年度分红<br>
-        无 2025 年报数据 → 2024年度分红 × (1 + TTM净利同比 ÷ 100)（结果为负则置空）
+        净现金 = 最新总现金 − 最新短期借款 − 最新长期借款<br>
+        （结果为正代表现金盈余，为负代表有息净负债）
+      </div>
+      <h4>预期2025年度分红</h4>
+      <div class="formula">
+        有 2025 年报数据 → 取 2025 年报已公告年度分红总额<br>
+        无 2025 年报数据 → 2024年报分红 × (1 + TTM净利同比 ÷ 100)
       </div>
       <h4>预期25股东回报 &amp; 股东回报分配率</h4>
       <div class="formula">
-        预期25股东回报  = 预期25年度分红 + |TTM股份回购| ÷ 2（股份回购取绝对值，回购视为一次性，折半计入）<br>
-        股东回报分配率  = 预期25股东回报 ÷ TTM归母净利润 × 100%
+        预期25股东回报 = 预期25年度分红 + |TTM股份回购| ÷ 2（回购折半计入）<br>
+        股东回报分配率 = 预期25股东回报 ÷ TTM归母净利润 × 100%
       </div>
     </section>
 
     <section>
-      <h3>三、排名规则</h3>
-      <p>所有排名均采用<strong>标准竞争排名（1224式）</strong>：并列时取相同名次，下一名跳过相应位次。排名数值<strong>越小越好</strong>。</p>
-      <p>各排名均在<strong>同类内</strong>独立进行：<span class="cjin">金融股</span>与<span class="cfei">非金融股</span>互不干扰，<span class="cnone">其他</span>类不参与任何排名。</p>
-      <table class="rtable">
-        <tr><th>排名</th><th><span class="cjin">金融股</span></th><th><span class="cfei">非金融股</span></th><th>特殊规则</th></tr>
-        <tr>
-          <td>低估排名</td>
-          <td>PE(TTM) <strong>升序</strong></td>
-          <td>股东收益率 <strong>降序</strong></td>
-          <td>PE≤0 或股东收益率≤0 → <span class="cnone">无排名</span></td>
-        </tr>
-        <tr>
-          <td>成长排名</td>
-          <td colspan="2">TTM净利同比 <strong>降序</strong>（金融/非金融各自排队）</td>
-          <td>同比数据缺失视为 0，<strong>全员参与</strong></td>
-        </tr>
-        <tr>
-          <td>质量排名</td>
-          <td>TTMROE <strong>降序</strong></td>
-          <td>TTMROIC <strong>降序</strong></td>
-          <td>数据缺失 → <span class="cnone">无排名</span></td>
-        </tr>
-        <tr>
-          <td>股东回报排名</td>
-          <td colspan="2">股东回报分配率 <strong>降序</strong>（金融/非金融各自排队）</td>
-          <td>≤0 或缺失 → 末位（= 本队列总人数）</td>
-        </tr>
-      </table>
-    </section>
-
-    <section>
-      <h3>四、综合分数 &amp; 综合排名</h3>
+      <h3>三、TTM 计算</h3>
+      <h4>算法逻辑</h4>
+      <p>对于利润、现金流等<strong>累计类</strong>指标：</p>
       <div class="formula">
-        综合分数 = 低估排名 × 0.4 + 成长排名 × 0.2 + 质量排名 × 0.2 + 股东回报排名 × 0.2
+        TTM = 最近一期报表值 + 2024年全年度值 − 2024年同期报表值
       </div>
-      <ul>
-        <li>四项子排名<strong>任一为空</strong>（即"其他"类或低估/质量无法计算）→ 综合分数为空，不参与综合排名</li>
-        <li>综合排名按综合分数<strong>升序</strong>排列，金融/非金融分队列独立排名</li>
-        <li>综合分数越低 = 低估+成长+质量+回报综合越好</li>
-      </ul>
+      <p>对于 ROE、ROIC 等<strong>比率类</strong>指标：</p>
+      <div class="formula">
+        优先采用同期对比法计算；若同期数据缺失，则按季度权重折算。<br>
+        （如：三季报值 ÷ 3 × 4，或 中报值 × 2 进行年化处理）
+      </div>
     </section>
 
   </div>

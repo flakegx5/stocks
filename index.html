@@ -1238,7 +1238,7 @@ function updateURLState() {
   if (sortDir !== 'asc') params.set('sortDir', sortDir);
   if (searchText) params.set('q', searchText);
   if (filterIndustry) params.set('ind', filterIndustry);
-  if (filterStockType !== '非金融股') params.set('type', filterStockType);
+  if (filterStockType) params.set('type', filterStockType);
   if (Object.keys(filters).length > 0) params.set('f', JSON.stringify(filters));
   
   const qs = params.toString();

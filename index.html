@@ -13,7 +13,7 @@ body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", 
 .page-header {
   background: #ffffff;
   color: #111827; padding: 0 24px; height: 58px; display: flex;
-  align-items: center; gap: 20px; position: sticky; top: 0; z-index: 100;
+  align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100;
   box-shadow: 0 1px 0 #e2e8f0, 0 2px 8px rgba(0,0,0,.05);
   border-bottom: 1px solid #e2e8f0;
 }
@@ -28,6 +28,7 @@ body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", 
   letter-spacing: 1.8px; text-transform: uppercase; margin-left: 10px;
   vertical-align: middle; }
 .brand-tagline { font-size: 12px; color: #6b7280; letter-spacing: 0.2px; font-weight: 400; }
+.header-right { display: flex; align-items: center; gap: 12px; }
 
 /* Controls */
 .controls { background: #fafafa; border-bottom: 1px solid #e2e8f0; padding: 8px 24px;
@@ -298,94 +299,74 @@ td:nth-child(2) { background: inherit; }
   html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
 
   /* Header */
-  .page-header { height: 50px; padding: 0 14px; gap: 10px; }
-  .brand { gap: 9px; }
-  .brand-icon { width: 34px; height: 34px; }
-  .page-header h1 { font-size: 17px; letter-spacing: -0.4px; }
-  .page-header h1 .t-en { display: none; }
-  .brand-tagline { display: none; }
+  .page-header { height: 50px; padding: 0 10px; }
+  .brand { gap: 6px; }
+  .brand-icon { width: 32px; height: 32px; }
+  .page-header h1 { font-size: 16px; letter-spacing: -0.4px; }
+  .page-header h1 .t-en, .brand-tagline { display: none; }
+  .btn-rules { height: 28px; padding: 0 8px; font-size: 11px; }
 
   /* Controls — horizontal scroll strip */
   .controls {
-    top: 50px; padding: 7px 14px;
+    top: 50px; padding: 7px 10px;
     flex-wrap: nowrap; overflow-x: auto;
     -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 6px;
     touch-action: pan-x;
   }
   .controls::-webkit-scrollbar { display: none; }
   .sep { display: none; }
-  .controls input[type=search] { width: 130px; flex-shrink: 0; height: 29px; }
+  .controls input[type=search] { width: 120px; flex-shrink: 0; height: 29px; }
   .controls select { max-width: 88px; flex-shrink: 0; height: 29px; }
   .btn { flex-shrink: 0; padding: 0 10px; font-size: 12px; height: 29px; }
   .btn-export { display: none; }
 
   /* Summary bar — horizontal scroll */
   .summary-bar {
-    padding: 0 14px; overflow-x: auto;
+    padding: 0 10px; height: auto; min-height: 36px; overflow-x: auto;
     -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 0;
-    touch-action: pan-x;
+    touch-action: pan-x; flex-wrap: wrap;
   }
   .summary-bar::-webkit-scrollbar { display: none; }
-  .sb-meta { display: none; }
-  .sb-count { padding-right: 12px; }
+  .sb-meta { display: block; width: 100%; margin: 4px 0 6px 0; padding-left: 0; font-size: 10px; border-top: 1px solid #e2e8f0; padding-top: 4px; }
+  .sb-count { padding-right: 12px; border-right: none; }
   .sb-stat { padding: 0 11px; }
-  .sb-stat .sb-lbl { font-size: 11px; }
-  .sb-stat strong { font-size: 12.5px; }
 
   /* Table wrapper */
-  .table-wrap { height: calc(100vh - 130px); touch-action: pan-x pan-y; }
+  .table-wrap { height: calc(100vh - 140px); touch-action: pan-x pan-y; }
 
   /* Table */
-  thead th { height: 40px; font-size: 11px; padding: 0 5px; }
+  thead th { height: 44px; font-size: 11px; padding: 0 5px; }
   thead th .th-metric { font-size: 11px; }
   thead th .th-unit { font-size: 8px; }
+  thead th .th-rank-group { display: block; font-size: 8px; color: #94a3b8; font-weight: 400; margin-bottom: 0px; text-align: center; width: 100%; }
   td { height: 36px; font-size: 11.5px; padding: 0 5px; }
 
   /* Mobile col layout: 代码隐藏 → 简称=nth-child(1), 第一排名列=nth-child(2) */
   /* nth-child(1) = 简称: sticky left:0, 调整为简称的样式 */
-  thead th:nth-child(1) { min-width: 104px; max-width: 104px; left: 0; }
-  td:nth-child(1) {
-    min-width: 104px; max-width: 104px; left: 0;
+  #mainTable thead th:nth-child(1) { min-width: 104px; max-width: 104px; left: 0; z-index: 25; }
+  #mainTable td:nth-child(1) {
+    position: sticky !important; z-index: 10; left: 0 !important;
+    min-width: 104px; max-width: 104px;
     font-family: inherit; font-weight: 500; color: #1a2332;
     border-right: 2px solid #c0c8d8; will-change: transform;
     white-space: normal; word-break: break-all; line-height: 1.35;
-    text-align: left;
+    text-align: left !important; background: inherit;
   }
-  /* nth-child(2) = 低估排名（默认代码隐藏时）: 取消横向固定，保留表头吸顶(position:sticky top:0由base CSS继承) */
-  thead th:nth-child(2) { left: auto; z-index: 10; min-width: auto; max-width: none; will-change: auto; }
-  td:nth-child(2) {
-    position: static; left: auto; min-width: auto; max-width: none;
-    font-weight: normal; color: inherit; text-align: right;
-    border-right: 1px solid #e6e9f0; will-change: auto;
-  }
-  /* 恢复 pos/neg 颜色：与 td:nth-child(2) 优先级相同，放在其后使其生效 */
-  td.pos { color: #1a7040; }
-  td.neg { color: #c42e10; }
-  /* 重置奇偶行背景，避免与其他列视觉不一致 */
-  tbody tr:nth-child(even) td:nth-child(2),
-  tbody tr:nth-child(odd)  td:nth-child(2) { left: auto; }
+  /* Ensure other columns are NOT sticky in mobile if code is hidden (default) */
+  #mainTable thead th:nth-child(2) { position: static; left: auto; min-width: auto; max-width: none; z-index: 10; }
+  #mainTable td:nth-child(2) { position: static; left: auto; min-width: auto; max-width: none; z-index: 1; border-right: 1px solid #e6e9f0; text-align: right; }
 
-  /* 代码列被用户勾选时: 代码=nth-child(1), 简称=nth-child(2), 恢复双列 sticky */
-  #mainTable.table-has-code thead th:nth-child(1) {
-    min-width: 64px; max-width: 64px; left: 0; will-change: transform;
-  }
-  #mainTable.table-has-code td:nth-child(1) {
-    min-width: 64px; max-width: 64px; left: 0;
-    font-family: monospace; font-weight: normal; color: #555;
-    border-right: 1px solid #e6e9f0; will-change: transform;
-  }
-  #mainTable.table-has-code thead th:nth-child(2) {
-    position: sticky; z-index: 20;
-    min-width: 104px; max-width: 104px; left: 64px; will-change: transform;
-  }
-  #mainTable.table-has-code td:nth-child(2) {
-    position: sticky; z-index: 5;
-    min-width: 104px; max-width: 104px; left: 64px;
-    font-weight: 500; color: #1a2332; border-right: 2px solid #c0c8d8; will-change: transform;
-    white-space: normal; word-break: break-all; line-height: 1.35;
-  }
-  #mainTable.table-has-code tbody tr:nth-child(even) td:nth-child(2),
-  #mainTable.table-has-code tbody tr:nth-child(odd)  td:nth-child(2) { left: 64px; }
+  /* When code is visible, shift name sticky offset */
+  #mainTable.table-has-code thead th:nth-child(1) { min-width: 64px; max-width: 64px; left: 0; z-index: 25; }
+  #mainTable.table-has-code td:nth-child(1) { min-width: 64px; max-width: 64px; left: 0 !important; font-family: monospace; text-align: left !important; }
+  #mainTable.table-has-code thead th:nth-child(2) { position: sticky; left: 64px; min-width: 104px; max-width: 104px; z-index: 25; }
+  #mainTable.table-has-code td:nth-child(2) { position: sticky !important; left: 64px !important; min-width: 104px; max-width: 104px; z-index: 10; border-right: 2px solid #c0c8d8; text-align: left !important; }
+  
+  /* Reset zebra stripes overrides to ensure transparency/inherit works */
+  tbody tr:nth-child(even) td:nth-child(1),
+  tbody tr:nth-child(even) td:nth-child(2),
+  tbody tr:nth-child(odd) td:nth-child(1),
+  tbody tr:nth-child(odd) td:nth-child(2) { background: inherit; }
 
   /* Column picker — bottom sheet */
   .col-picker {
@@ -449,13 +430,16 @@ td:nth-child(2) { background: inherit; }
       <span class="brand-tagline">多维量化比较 · 发现真实性价比</span>
     </div>
   </div>
+  <div class="header-right">
+    <button class="btn btn-rules" id="rulesBtn">规则说明</button>
+  </div>
 </div>
 
 <div class="controls">
   <input type="search" id="searchBox" placeholder="搜索代码/名称…">
   <div class="queue-toggles">
-    <button id="btnQueueFei" class="btn queue-btn active" data-type="非金融股">非金融股队列</button>
-    <button id="btnQueueJin" class="btn queue-btn" data-type="金融股">金融股队列</button>
+    <button id="btnQueueFei" class="btn queue-btn active" data-type="非金融股">非金融股</button>
+    <button id="btnQueueJin" class="btn queue-btn" data-type="金融股">金融股</button>
   </div>
   <select id="industryFilter">
     <option value="">所有行业</option>
@@ -469,8 +453,6 @@ td:nth-child(2) { background: inherit; }
   <button class="btn" id="resetView">重置</button>
   <span class="sep">|</span>
   <button class="btn btn-export" id="exportBtn">导出 Excel</button>
-  <span class="sep">|</span>
-  <button class="btn btn-rules" id="rulesBtn">计算规则说明</button>
 </div>
 
 <div class="filter-overlay" id="filterOverlay"></div>

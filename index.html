@@ -322,47 +322,45 @@ td:nth-child(2) { background: inherit; }
 
   /* Summary bar — horizontal scroll */
   .summary-bar {
-    padding: 0 10px; height: auto; min-height: 36px; overflow-x: auto;
+    padding: 0 10px; height: 36px; overflow-x: auto;
     -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 0;
-    touch-action: pan-x; flex-wrap: wrap;
+    touch-action: pan-x; flex-wrap: nowrap; align-items: center; display: flex;
   }
   .summary-bar::-webkit-scrollbar { display: none; }
-  .sb-meta { display: block; width: 100%; margin: 4px 0 6px 0; padding-left: 0; font-size: 10px; border-top: 1px solid #e2e8f0; padding-top: 4px; }
-  .sb-count { padding-right: 12px; border-right: none; }
+  .sb-meta { display: inline-block; width: auto; margin: 0 0 0 12px; padding-left: 0; font-size: 10px; border-top: none; padding-top: 0; white-space: nowrap; vertical-align: middle; }
+  .sb-count { padding-right: 12px; border-right: 1px solid #e2e8f0; flex-shrink: 0; }
   .sb-stat { padding: 0 11px; }
 
   /* Table wrapper */
-  .table-wrap { height: calc(100vh - 140px); touch-action: pan-x pan-y; }
+  .table-wrap { height: calc(100vh - 130px); touch-action: pan-x pan-y; }
 
   /* Table */
-  thead th { height: 44px; font-size: 11px; padding: 0 5px; }
+  thead th { height: 44px; font-size: 11px; padding: 0 5px; border-right: 1px solid #dde3ec; }
   thead th .th-metric { font-size: 11px; }
   thead th .th-unit { font-size: 8px; }
-  thead th .th-rank-group { display: block; font-size: 8px; color: #94a3b8; font-weight: 400; margin-bottom: 0px; text-align: center; width: 100%; }
+  thead th .th-rank-group { display: block; font-size: 8px; color: #94a3b8; font-weight: 400; margin-bottom: 0px; text-align: center; width: 100%; border-bottom: 1px solid rgba(0,0,0,0.05); margin-bottom: 2px; padding-bottom: 1px; }
   td { height: 36px; font-size: 11.5px; padding: 0 5px; }
 
-  /* Mobile col layout: 代码隐藏 → 简称=nth-child(1), 第一排名列=nth-child(2) */
-  /* nth-child(1) = 简称: sticky left:0, 调整为简称的样式 */
+  /* Mobile col layout: 代码隐藏 → 简称=nth-child(1) */
   #mainTable thead th:nth-child(1) { min-width: 104px; max-width: 104px; left: 0; z-index: 25; }
   #mainTable td:nth-child(1) {
     position: sticky !important; z-index: 10; left: 0 !important;
     min-width: 104px; max-width: 104px;
     font-family: inherit; font-weight: 500; color: #1a2332;
     border-right: 2px solid #c0c8d8; will-change: transform;
-    white-space: normal; word-break: break-all; line-height: 1.35;
+    white-space: normal; word-break: break-all; line-height: 1.25;
     text-align: left !important; background: inherit;
   }
-  /* Ensure other columns are NOT sticky in mobile if code is hidden (default) */
-  #mainTable thead th:nth-child(2) { position: static; left: auto; min-width: auto; max-width: none; z-index: 10; }
-  #mainTable td:nth-child(2) { position: static; left: auto; min-width: auto; max-width: none; z-index: 1; border-right: 1px solid #e6e9f0; text-align: right; }
-
-  /* When code is visible, shift name sticky offset */
-  #mainTable.table-has-code thead th:nth-child(1) { min-width: 64px; max-width: 64px; left: 0; z-index: 25; }
-  #mainTable.table-has-code td:nth-child(1) { min-width: 64px; max-width: 64px; left: 0 !important; font-family: monospace; text-align: left !important; }
+  /* When code is visible, col 1 is code, col 2 is name */
+  #mainTable.table-has-code thead th:nth-child(1) { min-width: 64px; max-width: 64px; left: 0; z-index: 25; border-right: 1px solid #dde3ec; }
+  #mainTable.table-has-code td:nth-child(1) { min-width: 64px; max-width: 64px; left: 0 !important; font-family: monospace; text-align: left !important; border-right: 1px solid #e6e9f0; }
   #mainTable.table-has-code thead th:nth-child(2) { position: sticky; left: 64px; min-width: 104px; max-width: 104px; z-index: 25; }
   #mainTable.table-has-code td:nth-child(2) { position: sticky !important; left: 64px !important; min-width: 104px; max-width: 104px; z-index: 10; border-right: 2px solid #c0c8d8; text-align: left !important; }
   
-  /* Reset zebra stripes overrides to ensure transparency/inherit works */
+  /* Ensure other columns are NOT sticky in mobile */
+  #mainTable:not(.table-has-code) thead th:nth-child(2),
+  #mainTable:not(.table-has-code) td:nth-child(2) { position: static; left: auto; min-width: auto; max-width: none; border-right: 1px solid #e6e9f0; }
+  
   tbody tr:nth-child(even) td:nth-child(1),
   tbody tr:nth-child(even) td:nth-child(2),
   tbody tr:nth-child(odd) td:nth-child(1),
@@ -431,7 +429,7 @@ td:nth-child(2) { background: inherit; }
     </div>
   </div>
   <div class="header-right">
-    <button class="btn btn-rules" id="rulesBtn">规则说明</button>
+    <button class="btn btn-rules" id="rulesBtn">计算规则说明</button>
   </div>
 </div>
 
@@ -439,7 +437,7 @@ td:nth-child(2) { background: inherit; }
   <input type="search" id="searchBox" placeholder="搜索代码/名称…">
   <div class="queue-toggles">
     <button id="btnQueueFei" class="btn queue-btn active" data-type="非金融股">非金融股</button>
-    <button id="btnQueueJin" class="btn queue-btn" data-type="金融股">金融股</button>
+    <button id="btnQueueJin" class="btn queue-btn" data-type="金融股">金融类股</button>
   </div>
   <select id="industryFilter">
     <option value="">所有行业</option>
@@ -927,39 +925,90 @@ function cleanColName(name) {
 // ---- Build header ----
 function buildHeader() {
   const thead = document.getElementById('tableHead');
-  const tr = document.createElement('tr');
-  // Header-only display units (not used by fmtCell)
-  const headerUnitOverride = {3: '港元', 4: '%'};
-  let prevGroup = null;
-  getVisibleColDefs().forEach(col => {
-    const th = document.createElement('th');
-    const pipe = col.fullName.indexOf('|');
-    let metric, date;
-    if (pipe >= 0) {
-      metric = col.fullName.slice(0, pipe);
-      date = col.fullName.slice(pipe + 1);
-    } else {
-      metric = cleanColName(col.name); date = '';
-    }
-    const unit = headerUnitOverride[col.idx] ?? getColUnit(col);
-    const unitHtml = unit ? `<span class="th-unit">${unit}</span>` : '';
-    if (isMobile() && (metric.endsWith('排名') || metric === '综合分数')) {
-      th.innerHTML = `<span class="th-rank-group">排名维度</span><span class="th-metric">${metric.replace('排名', '')}</span>`;
-    } else {
-      th.innerHTML = `<span class="th-metric">${metric}</span>${unitHtml}${date ? `<span class="th-date">${date}</span>` : ''}`;
-    }
-    th.dataset.colidx = col.idx;
-    th.dataset.group = col.group;
-    if (col.group !== prevGroup) { th.classList.add('group-start'); prevGroup = col.group; }
-    if (String(sortCol) === String(col.idx)) {
-      th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
-    }
-    th.addEventListener('click', () => onSortClick(col.idx));
-    tr.appendChild(th);
-  });
   thead.innerHTML = '';
-  thead.appendChild(tr);
-  // Mobile: toggle class so CSS can adjust sticky column offsets
+  const colDefs = getVisibleColDefs();
+  const headerUnitOverride = {3: '港元', 4: '%'};
+  
+  if (!isMobile()) {
+    const tr = document.createElement('tr');
+    let prevGroup = null;
+    colDefs.forEach(col => {
+      const th = document.createElement('th');
+      let metric, date;
+      const pipe = col.fullName.indexOf('|');
+      if (pipe >= 0) {
+        metric = col.fullName.slice(0, pipe);
+        date = col.fullName.slice(pipe + 1);
+      } else {
+        metric = cleanColName(col.name); date = '';
+      }
+      const unit = headerUnitOverride[col.idx] ?? getColUnit(col);
+      const unitHtml = unit ? `<span class="th-unit">${unit}</span>` : '';
+      th.innerHTML = `<span class="th-metric">${metric}</span>${unitHtml}${date ? `<span class="th-date">${date}</span>` : ''}`;
+      th.dataset.colidx = col.idx;
+      th.dataset.group = col.group;
+      if (col.group !== prevGroup) { th.classList.add('group-start'); prevGroup = col.group; }
+      if (String(sortCol) === String(col.idx)) {
+        th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+      th.addEventListener('click', () => onSortClick(col.idx));
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+  } else {
+    const tr1 = document.createElement('tr');
+    const tr2 = document.createElement('tr');
+    let rankStartIdx = -1, rankCount = 0;
+    colDefs.forEach((col, i) => {
+      const m = cleanColName(col.name);
+      if (m.endsWith('排名') || m === '综合分数') {
+        if (rankStartIdx === -1) rankStartIdx = i;
+        rankCount++;
+      }
+    });
+
+    colDefs.forEach((col, i) => {
+      const th = document.createElement('th');
+      th.dataset.colidx = col.idx;
+      if (String(sortCol) === String(col.idx)) {
+        th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+      th.addEventListener('click', () => onSortClick(col.idx));
+
+      const metric = cleanColName(col.name);
+      const isRank = metric.endsWith('排名') || metric === '综合分数';
+
+      if (isRank) {
+        if (i === rankStartIdx) {
+          const gth = document.createElement('th');
+          gth.textContent = '排名维度';
+          gth.colSpan = rankCount;
+          gth.style.height = '18px';
+          gth.style.fontSize = '9px';
+          gth.style.color = '#94a3b8';
+          gth.style.borderBottom = '1px solid rgba(0,0,0,0.05)';
+          tr1.appendChild(gth);
+        }
+        th.innerHTML = `<span class="th-metric">${metric.replace('排名','')}</span>`;
+        th.style.top = '18px';
+        th.style.height = '26px';
+        tr2.appendChild(th);
+      } else {
+        th.rowSpan = 2;
+        const pipe = col.fullName.indexOf('|');
+        let m, d;
+        if (pipe >= 0) { m = col.fullName.slice(0, pipe); d = col.fullName.slice(pipe + 1); }
+        else { m = metric; d = ''; }
+        const unit = headerUnitOverride[col.idx] ?? getColUnit(col);
+        const unitHtml = unit ? `<span class="th-unit">${unit}</span>` : '';
+        th.innerHTML = `<span class="th-metric">${m}</span>${unitHtml}${d ? `<span class="th-date">${d}</span>` : ''}`;
+        tr1.appendChild(th);
+      }
+    });
+    thead.appendChild(tr1);
+    thead.appendChild(tr2);
+  }
+  
   if (isMobile()) {
     document.getElementById('mainTable').classList.toggle(
       'table-has-code', getVisibleColDefs().some(c => c.idx === 1)

@@ -1143,7 +1143,11 @@ function onSortClick(colidx) {
     sortDir = sortDir === 'asc' ? 'desc' : 'asc';
   } else {
     sortCol = colidx;
-    sortDir = 'desc';
+    // Default to 'asc' for rankings, 'desc' for everything else
+    const col = COLS.find(c => String(c.idx) === ci);
+    const metric = col ? cleanColName(col.name) : '';
+    const isRank = metric.endsWith('排名') || metric === '综合分数';
+    sortDir = isRank ? 'asc' : 'desc';
   }
   applyFilters();
   buildHeader();

@@ -177,6 +177,8 @@ td {
 tbody td:nth-child(1), tbody td:nth-child(2) { text-align: left; }
 td.neg { color: #c42e10; }
 td.pos { color: #1a7040; }
+/* Highlight '综合排名' (Column 39) */
+td[data-colidx="39"] { color: #c41e3a !important; font-weight: 700 !important; }
 
 /* Sticky body cells */
 tbody td:nth-child(1) {
@@ -365,11 +367,7 @@ tbody td:nth-child(2) { background: inherit; }
   #mainTable thead th[data-colidx="36"], #mainTable thead th[data-colidx="37"],
   #mainTable thead th[data-colidx="39"] { min-width: 42px; }
 
-  /* Highlight Composite Score/Rank */
-  #mainTable td[data-colidx="38"], #mainTable td[data-colidx="39"] { color: #c41e3a !important; font-weight: 700 !important; }
-  
-  /* Ensure other columns are NOT sticky in mobile */
-  #mainTable:not(.table-has-code) thead tr:first-child th:nth-child(2),
+  /* Ensure other columns are NOT sticky in mobile */  #mainTable:not(.table-has-code) thead tr:first-child th:nth-child(2),
   #mainTable:not(.table-has-code) tbody td:nth-child(2) { position: static; left: auto; min-width: auto; max-width: none; border-right: 1px solid #e6e9f0; }
   
   tbody tr:nth-child(even) td:nth-child(1),
@@ -1059,7 +1057,7 @@ function buildBody() {
         else if (n !== null && n > 0 && col.idx >= 4) classes.push('pos');
       }
       const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
-      html += `<td${cls}>${fmtCell(rawVal, col)}</td>`;
+      html += `<td${cls} data-colidx="${col.idx}">${fmtCell(rawVal, col)}</td>`;
     });
     html += '</tr>';
   }

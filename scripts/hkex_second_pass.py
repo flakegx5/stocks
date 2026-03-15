@@ -101,21 +101,45 @@ METRIC_ALIASES = {
     ],
     "短期借款": [
         "短期借款",
+        "一年内到期的借款",
+        "一年内到期的银行借款",
         "short-term borrowings",
+        "bank borrowings – amount due within one year",
+        "bank borrowings - amount due within one year",
+        "amount due within one year",
+        "repayable within one year",
         "bank borrowings - current",
         "current borrowings",
+        "current portion of borrowings",
+        "current portion of bank borrowings",
     ],
     "长期借款": [
         "长期借款",
+        "长期银行借款",
+        "非流动借款",
         "long-term borrowings",
+        "bank borrowings – amount due after one year",
+        "bank borrowings - amount due after one year",
+        "amount due after one year",
+        "repayable after one year",
         "bank borrowings - non-current",
         "non-current borrowings",
+        "bank loans and other interest-bearing borrowings",
+        "bank loans and other borrowings",
+        "bank and other borrowings",
+        "bank and other loans",
+        "interest-bearing bank and other borrowings",
     ],
     "资本性支出": [
         "资本性支出",
+        "资本开支",
         "购建固定资产",
         "capital expenditure",
+        "capital commitments",
+        "capital expenditure contracted for",
+        "capital commitments contracted for",
         "purchase of property, plant and equipment",
+        "additions to property, plant and equipment",
     ],
     "经营活动产生的现金流量净额": [
         "经营活动产生的现金流量净额",
@@ -387,6 +411,10 @@ def extract_pdf_text(pdf_bytes: bytes, max_pages: int = 20) -> str:
     return "\n".join(pages)
 
 
+def extract_pdf_lines(text: str) -> list[str]:
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
 def detect_currency(text: str) -> str | None:
     sample = text[:15000]
     for code, patterns in CURRENCY_PATTERNS.items():
@@ -423,13 +451,212 @@ def parse_numeric_token(token: str) -> float | None:
     return -value if negative else value
 
 
+def numbers_from_text(text: str) -> list[float]:
+    values = []
+    for token in re.findall(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", text):
+        parsed = parse_numeric_token(token)
+        if parsed is not None:
+            values.append(parsed)
+    return values
+
+
+def choose_line_numeric_values(line: str) -> list[float]:
+    values = numbers_from_text(line)
+    if len(values) >= 3 and abs(values[0]) <= 100 and float(values[0]).is_integer():
+        return values[1:]
+    return values
+
+
+def has_placeholder_before_value(text: str) -> bool:
+    stripped = text.strip()
+    return stripped.startswith("-") or stripped.startswith("–") or stripped.startswith("—")
+
+
+def tail_after_alias(text: str, alias: str) -> str:
+    match = re.search(re.escape(alias), text, flags=re.IGNORECASE)
+    if not match:
+        return text
+    return text[match.end() :]
+
+
+def record_line_hit(
+    hits: list[dict],
+    alias: str,
+    line: str,
+    raw_value: float,
+    multiplier: int,
+    fx_to_hkd: float | None,
+) -> None:
+    normalized = raw_value * multiplier
+    hits.append(
+        {
+            "alias": alias,
+            "snippet": normalize_ws(line),
+            "raw_value": raw_value,
+            "normalized_value": normalized,
+            "value_hkd": normalized * fx_to_hkd if fx_to_hkd is not None else None,
+        }
+    )
+
+
+def metric_context_aliases(metric: str) -> tuple[list[str], list[str]]:
+    if metric == "长期借款":
+        return (
+            [
+                "amount due after one year",
+                "repayable after one year",
+                "non-current liabilities",
+                "non-current borrowings",
+            ],
+            [
+                "borrowings",
+                "bank loans and other borrowings",
+                "bank and other borrowings",
+                "bank and other loans",
+                "interest-bearing bank and other borrowings",
+            ],
+        )
+    if metric == "短期借款":
+        return (
+            [
+                "amount due within one year",
+                "repayable within one year",
+                "current liabilities",
+                "current borrowings",
+            ],
+            [
+                "borrowings",
+                "bank borrowings",
+                "bank and other borrowings",
+                "bank and other loans",
+            ],
+        )
+    if metric == "资本性支出":
+        return (
+            [
+                "capital expenditure contracted for",
+                "capital commitments",
+                "capital expenditure",
+                "purchase of property, plant and equipment",
+                "additions to property, plant and equipment",
+            ],
+            [],
+        )
+    return ([], [])
+
+
+def metric_text_aliases(metric: str) -> list[str]:
+    aliases = list(METRIC_ALIASES.get(metric, [metric]))
+    if metric == "长期借款":
+        banned = {
+            "bank loans and other borrowings",
+            "bank and other borrowings",
+            "bank and other loans",
+            "interest-bearing bank and other borrowings",
+        }
+        return [alias for alias in aliases if alias not in banned]
+    if metric == "短期借款":
+        banned = {
+            "bank borrowings",
+            "bank and other borrowings",
+            "bank and other loans",
+        }
+        return [alias for alias in aliases if alias not in banned]
+    return aliases
+
+
+def find_metric_amounts_by_lines(
+    lines: list[str],
+    metrics: Iterable[str],
+    multiplier: int,
+    fx_to_hkd: float | None,
+) -> dict[str, list[dict]]:
+    results: dict[str, list[dict]] = {metric: [] for metric in metrics}
+    lower_lines = [line.lower() for line in lines]
+
+    for metric in metrics:
+        direct_aliases = METRIC_ALIASES.get(metric, [metric])
+        primary_aliases, contextual_aliases = metric_context_aliases(metric)
+        hits: list[dict] = []
+
+        for index, line in enumerate(lines):
+            lower = lower_lines[index]
+            matched_alias = next((alias for alias in direct_aliases if alias.lower() in lower), None)
+            if matched_alias is None:
+                continue
+            tail = tail_after_alias(line, matched_alias)
+            if has_placeholder_before_value(tail):
+                continue
+            values = choose_line_numeric_values(line)
+            if values:
+                record_line_hit(hits, matched_alias, line, values[0], multiplier, fx_to_hkd)
+                if len(hits) >= 5:
+                    break
+                continue
+
+            window = " ".join(lines[index : index + 3])
+            values = choose_line_numeric_values(window)
+            if values:
+                record_line_hit(hits, matched_alias, window, values[0], multiplier, fx_to_hkd)
+                if len(hits) >= 5:
+                    break
+
+        if hits:
+            results[metric] = hits
+            continue
+
+        if not primary_aliases:
+            continue
+
+        for index, line in enumerate(lines):
+            lower = lower_lines[index]
+            matched_primary = next((alias for alias in primary_aliases if alias.lower() in lower), None)
+            if matched_primary is None:
+                continue
+
+            window_lines = lines[index : index + 4]
+            window_lower = " ".join(item.lower() for item in window_lines)
+            matched_context = next(
+                (alias for alias in contextual_aliases if alias.lower() in window_lower),
+                None,
+            )
+            if matched_context is None and contextual_aliases:
+                continue
+
+            candidate_line = None
+            for probe in window_lines:
+                if matched_context and matched_context.lower() in probe.lower():
+                    candidate_line = probe
+                    break
+            if candidate_line is None:
+                candidate_line = " ".join(window_lines)
+            if matched_context:
+                tail = tail_after_alias(candidate_line, matched_context)
+                if has_placeholder_before_value(tail):
+                    continue
+            values = choose_line_numeric_values(candidate_line)
+            if not values:
+                continue
+            alias = f"{matched_primary} + {matched_context}" if matched_context else matched_primary
+            record_line_hit(hits, alias, candidate_line, values[0], multiplier, fx_to_hkd)
+            if len(hits) >= 5:
+                break
+
+        results[metric] = hits
+
+    return results
+
+
 def find_metric_amounts(text: str, metrics: Iterable[str], multiplier: int, fx_to_hkd: float | None) -> dict[str, list[dict]]:
     results: dict[str, list[dict]] = {}
     number_pattern = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?")
     for metric in metrics:
         hits = []
-        for alias in METRIC_ALIASES.get(metric, [metric]):
+        for alias in metric_text_aliases(metric):
             for match in re.finditer(re.escape(alias), text, flags=re.IGNORECASE):
+                tail = text[match.end() : min(len(text), match.end() + 24)]
+                if has_placeholder_before_value(tail):
+                    continue
                 start = max(0, match.start() - 40)
                 end = min(len(text), match.end() + 160)
                 snippet = text[start:end]
@@ -456,6 +683,25 @@ def find_metric_amounts(text: str, metrics: Iterable[str], multiplier: int, fx_t
                 break
         results[metric] = hits
     return results
+
+
+def merge_metric_amounts(*sources: dict[str, list[dict]]) -> dict[str, list[dict]]:
+    merged: dict[str, list[dict]] = {}
+    seen: dict[str, set[tuple[float, str]]] = {}
+    for source in sources:
+        for metric, hits in source.items():
+            merged.setdefault(metric, [])
+            seen.setdefault(metric, set())
+            for hit in hits:
+                key = (
+                    round(hit["normalized_value"], 6),
+                    normalize_ws(hit["snippet"])[:160],
+                )
+                if key in seen[metric]:
+                    continue
+                seen[metric].add(key)
+                merged[metric].append(hit)
+    return merged
 
 
 def aggregate_cash_components(amounts: dict[str, list[dict]]) -> dict:
@@ -511,11 +757,81 @@ def choose_distinct_amount_hit(hits: list[dict]) -> dict | None:
     return None
 
 
+def score_metric_hit(metric: str, hit: dict) -> int:
+    alias = hit.get("alias", "").lower()
+    snippet = hit.get("snippet", "").lower()
+    raw_value = abs(hit.get("raw_value") or 0)
+    score = 0
+
+    if metric == "长期借款":
+        if any(token in alias or token in snippet for token in ["after one year", "non-current liabilities", "non-current borrowings"]):
+            score += 30
+        if any(token in alias or token in snippet for token in ["bank loans and other", "interest-bearing bank and other"]):
+            score += 20
+        if "borrowings" in alias:
+            score += 8
+        if "total assets less current liabilities" in snippet:
+            score -= 20
+        if any(token in snippet for token in ["interest on", "total borrowings", "external borrowings", "fair value of such borrowings"]):
+            score -= 25
+        if raw_value and 1900 <= raw_value <= 2100 and any(token in snippet for token in ["june", "december", "2025", "2024", "2026"]):
+            score -= 40
+        if hit.get("raw_value", 0) < 0:
+            score -= 25
+
+    elif metric == "短期借款":
+        if any(token in alias or token in snippet for token in ["within one year", "current liabilities", "current borrowings"]):
+            score += 30
+        if "current portion" in alias or "current portion" in snippet:
+            score += 20
+        if "borrowings" in alias:
+            score += 8
+        if any(token in snippet for token in ["interest on", "total borrowings", "external borrowings"]):
+            score -= 25
+        if raw_value and 1900 <= raw_value <= 2100 and any(token in snippet for token in ["june", "december", "2025", "2024", "2026"]):
+            score -= 40
+        if hit.get("raw_value", 0) < 0:
+            score -= 25
+
+    elif metric == "资本性支出":
+        if any(token in snippet for token in ["contracted for", "amounted to", "capital commitments"]):
+            score += 30
+        if "purchase of property, plant and equipment" in alias or "additions to property, plant and equipment" in alias:
+            score += 20
+        if "capital expenditure" in alias:
+            score += 10
+        if "% of sales" in snippet:
+            score -= 40
+        if "funded from cash on hand" in snippet:
+            score -= 25
+        if raw_value and 1900 <= raw_value <= 2100 and "2025" in snippet:
+            score -= 40
+
+    else:
+        if raw_value and 1900 <= raw_value <= 2100 and any(token in snippet for token in ["2025", "2024", "2026"]):
+            score -= 25
+
+    if raw_value >= 1_000:
+        score += 5
+    if raw_value >= 1_000_000:
+        score += 5
+    return score
+
+
 def choose_metric_candidate(metric: str, amounts: dict[str, list[dict]]) -> dict | None:
     hits = amounts.get(metric, [])
     if not hits:
         return None
-    return choose_distinct_amount_hit(hits)
+    ranked = sorted(
+        hits,
+        key=lambda hit: (score_metric_hit(metric, hit), abs(hit.get("normalized_value", 0))),
+        reverse=True,
+    )
+    min_score = 1 if metric in {"长期借款", "短期借款", "资本性支出"} else -10
+    for hit in ranked:
+        if score_metric_hit(metric, hit) >= min_score:
+            return hit
+    return None
 
 
 def build_supplement_candidates(target: dict, doc: dict) -> dict:
@@ -647,12 +963,16 @@ def main() -> int:
             file_path = out_dir / f"{clean_code(target['code'])}_{target['period']}_{index}.pdf"
             file_path.write_bytes(binary)
             text = extract_pdf_text(binary)
+            lines = extract_pdf_lines(text)
             currency = detect_currency(text)
             fx_rate = fx.rate_to_hkd(currency, doc.date_time.date()) if currency else None
             unit_multiplier = detect_unit_multiplier(text)
             snippets = find_metric_snippets(text, target["core_missing"] + target["optional_missing"])
             metrics_for_amounts = list(dict.fromkeys(target["core_missing"] + target["optional_missing"] + CASH_COMPONENTS))
-            amounts = find_metric_amounts(text, metrics_for_amounts, unit_multiplier, fx_rate)
+            amounts = merge_metric_amounts(
+                find_metric_amounts_by_lines(lines, metrics_for_amounts, unit_multiplier, fx_rate),
+                find_metric_amounts(text, metrics_for_amounts, unit_multiplier, fx_rate),
+            )
             cash_rebuild = aggregate_cash_components(amounts) if "总现金" in target["core_missing"] else None
             doc_reports.append(
                 {

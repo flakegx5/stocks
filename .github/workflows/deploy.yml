@@ -19,7 +19,7 @@ jobs:
           timeout: 30s
           command_timeout: 5m
           script: |
-            cd /home/ubuntu/stocks
+            cd /opt/1panel/apps/openresty/openresty/www/sites/aimarket365.cloud/index
             git fetch origin main
             git reset --hard origin/main
             python3 build_html.py

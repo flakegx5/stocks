@@ -20,6 +20,7 @@ jobs:
           command_timeout: 5m
           script: |
             cd /home/ubuntu/stocks
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             python3 build_html.py
             echo "Deploy completed at $(date)"

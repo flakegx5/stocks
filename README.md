@@ -25,6 +25,7 @@
 ```bash
 pip3 install playwright
 python3 -m playwright install chromium
+python3 -m pip install --user pypdf requests
 ```
 
 ### 抓取数据并更新
@@ -42,6 +43,28 @@ python3 scrape_iwencai_xhr.py --build --push
 ```bash
 python3 build_html.py
 ```
+
+### 二次补抓（HKEXnews）
+
+当前二次补抓逻辑只生成候选补充数据与统计结果，不直接回写 `hk_stocks_data_new.json`。
+
+```bash
+# 先生成缺口审计与二次补抓队列
+python3 scripts/audit_missing_financials.py \
+  --write-json debug_responses/missing_financial_audit.json
+
+# 再跑 HKEXnews 二次补抓，输出候选补充结果
+python3 scripts/hkex_second_pass.py \
+  --docs-per-stock 1 \
+  --queue-types only_cash only_long_debt only_short_and_long_debt only_capex \
+  --out debug_responses/hkex_second_pass/final_candidates_main_gaps.json
+```
+
+输出说明：
+
+- `debug_responses/missing_financial_audit.json`：缺口审计结果与二次补抓队列
+- `debug_responses/hkex_second_pass/*.json`：HKEXnews 二次补抓候选结果
+- 二次补抓结果目前只单独存储，不与主抓取数据自动合并
 
 ---
 

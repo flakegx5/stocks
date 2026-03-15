@@ -190,6 +190,47 @@ def _next_button_locator(page):
     ).first
 
 
+def validate_rows(rows):
+    """Validate the scraped row payload before overwriting the canonical JSON."""
+    if not rows:
+        return False, "empty_rows"
+
+    required_fields = ["股票代码", "股票简称", "港股@所属恒生行业(二级)"]
+    missing_required = [
+        field for field in required_fields
+        if not any(row.get(field) not in (None, "") for row in rows)
+    ]
+    if missing_required:
+        return False, f"missing_required_fields={','.join(missing_required)}"
+
+    has_market_cap = any(any(str(key).startswith("港股@总市值[") for key in row.keys()) for row in rows)
+    has_shares = any(any(str(key).startswith("港股@总股本[") for key in row.keys()) for row in rows)
+    if not has_market_cap or not has_shares:
+        missing = []
+        if not has_market_cap:
+            missing.append("总市值")
+        if not has_shares:
+            missing.append("总股本")
+        return False, f"missing_market_fields={','.join(missing)}"
+
+    valid_codes = 0
+    duplicate_codes = set()
+    seen_codes = set()
+    for row in rows:
+        code = str(row.get("股票代码", "")).strip()
+        if code:
+            valid_codes += 1
+            if code in seen_codes:
+                duplicate_codes.add(code)
+            seen_codes.add(code)
+    if valid_codes == 0:
+        return False, "no_stock_codes"
+    if len(duplicate_codes) > max(3, len(rows) // 20):
+        return False, f"too_many_duplicate_codes={len(duplicate_codes)}"
+
+    return True, f"rows={len(rows)} valid_codes={valid_codes}"
+
+
 # ---- 登录流程 ----
 def do_login():
     print("🔐 打开浏览器，请手动登录同花顺问财...")
@@ -378,6 +419,14 @@ def do_scrape(debug=False):
         if not debug:
             print("   建议运行 --debug 模式查看原始响应")
         return False
+
+    ok, detail = validate_rows(all_rows)
+    if not ok:
+        print(f"❌ 抓取结果校验失败，不覆盖输出文件：{detail}")
+        if debug:
+            print("   已保留 debug_responses 供排查")
+        return False
+    print(f"✅ 抓取结果校验通过：{detail}")
 
     # 收集所有字段名（保持顺序）
     all_keys: list[str] = []

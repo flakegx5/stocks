@@ -575,10 +575,10 @@ tbody td:nth-child(2) { background: inherit; }
       </div>
       <h4>TTMFCF（自由现金流）</h4>
       <div class="formula">
-        取以下两路算法的较小值（取流出更多者，更保守）：<br>
+        取以下两路算法的较大值（优先保留经营现金流口径与投资现金流口径中更稳健的一路）：<br>
         1. 经营现金流 + 资本支出（支出取负值，正值视为异常置 0）<br>
         2. 经营现金流 + 投资现金流<br>
-        TTMFCF = min(算法1, 算法2)；<span class="cjin">金融类股</span>置空
+        TTMFCF = max(算法1, 算法2)；<span class="cjin">金融类股</span>置空
       </div>
       <h4>净现金（有息负债视角）</h4>
       <div class="formula">
@@ -624,7 +624,7 @@ tbody td:nth-child(2) { background: inherit; }
 </div>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="data.js?t=1773578757"></script>
+<script src="data.js?t=1773588117"></script>
 <script>
 const _d = window.STOCK_DATA;
 const DATA    = {headers: _d.headers, rows: _d.rows};
@@ -705,8 +705,7 @@ function fmtNum(v) {
 
 // ---- Stock type classification ----
 // 金融股: 行业 in {保险,其他金融,银行} OR (行业==综合企业 AND 名称含中信集团)
-// 非金融股: 非金融 AND 至少一期有ROIC数据
-// 其他: 其余
+// 非金融股: 其余全部股票；是否能参与排名由字段完整度自然决定
 
 function isJinRong(row) {
   const ind = String(row[9]);
@@ -715,17 +714,9 @@ function isJinRong(row) {
   return false;
 }
 
-function hasAnyROIC(row) {
-  for (let i = ROIC_START; i <= ROIC_END; i++) {
-    const v = row[i];
-    if (v !== '--' && v !== null && v !== undefined && v !== '') return true;
-  }
-  return false;
-}
-
 function getStockType(row) {
   if (isJinRong(row)) return '金融股';
-  return '非金融股'; // Merge everything else into 非金融股
+  return '非金融股';
 }
 
 // ---- State ----
@@ -1359,8 +1350,10 @@ document.getElementById('resetView').addEventListener('click', () => {
   searchText = ''; filterIndustry = ''; filterStockType = '非金融股';
   filters = {}; pendingFilters = {};
   document.getElementById('searchBox').value = '';
-  document.getElementById('stockTypeFilter').value = '非金融股';
   document.getElementById('industryFilter').value = '';
+  document.querySelectorAll('.queue-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-type') === '非金融股');
+  });
   if (isMobile()) {
     visibleMetrics      = new Set();
     visibleComputedCols = new Set(MOBILE_COMPUTED_VISIBLE);
@@ -1407,7 +1400,7 @@ if (window.STOCK_DATA && window.STOCK_DATA.update_time) {
 document.querySelectorAll('.queue-btn').forEach(b => b.classList.remove('active'));
 const activeBtn = document.querySelector(`.queue-btn[data-type="${filterStockType}"]`) || document.getElementById('btnQueueFei');
 activeBtn.classList.add('active');
-filterStockType = activeBtn.getAttribute('data-type'); // Ensure it's not '其他' or empty
+filterStockType = activeBtn.getAttribute('data-type');
 document.getElementById('industryFilter').value = filterIndustry;
 document.getElementById('searchBox').value = searchText;
 render();

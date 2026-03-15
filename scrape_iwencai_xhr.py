@@ -8,12 +8,13 @@
   日常抓取:   python3 scrape_iwencai_xhr.py
   调试模式:   python3 scrape_iwencai_xhr.py --debug   （保存原始 API 响应）
   抓取后重建: python3 scrape_iwencai_xhr.py --build   （完成后自动运行 build_html.py）
+
 """
 
 import json
+import subprocess
 import sys
 import time
-import threading
 from pathlib import Path
 
 try:
@@ -41,17 +42,16 @@ QUERY_URL = (
     "&querytype=hkstock"
 )
 
-# iwencai 数据 API 的 URL 特征（用于过滤无关响应）
-DATA_URL_KEYWORDS = [
-    'get-robot-data',
-    'unified-result-datas',
-    'stockpick-result',
-    'unifiedwap/result-datas',
-    'wencai.com/stockpick',
-]
+DATA_URL_KEYWORDS = ('get-robot-data', 'getDataList')
 
 # ---- Session 工具（cookie + localStorage）----
 SESSION_FILE = BASE_DIR / 'iwencai_session.json'
+
+
+def write_text_atomic(path: Path, content: str, encoding='utf-8'):
+    tmp_path = path.with_name(f'.{path.name}.tmp')
+    tmp_path.write_text(content, encoding=encoding)
+    tmp_path.replace(path)
 
 def load_session(context):
     """加载 cookie；localStorage 在导航后由 inject_localstorage() 注入。"""
@@ -105,7 +105,7 @@ def save_session(context, page):
         return out;
     }""")
     session = {'cookies': cookies, 'localStorage': ls}
-    SESSION_FILE.write_text(json.dumps(session, ensure_ascii=False, indent=2), encoding='utf-8')
+    write_text_atomic(SESSION_FILE, json.dumps(session, ensure_ascii=False, indent=2))
     print(f"✅ 已保存 {len(cookies)} 个 cookie + {len(ls)} 条 localStorage → {SESSION_FILE}")
 
 
@@ -170,7 +170,24 @@ def _extract_from_response(body, debug=False):
 
 
 def _is_data_url(url: str) -> bool:
-    return any(kw in url for kw in DATA_URL_KEYWORDS)
+    return any(keyword in url for keyword in DATA_URL_KEYWORDS)
+
+
+def _looks_logged_out(page) -> bool:
+    try:
+        text = page.locator('body').inner_text(timeout=3000)
+    except Exception:
+        return False
+    markers = ('登录', '注册', '请登录', '登录后', '扫码登录')
+    return any(marker in text for marker in markers)
+
+
+def _next_button_locator(page):
+    return page.locator(
+        ".pcwencai-pagination li:has-text('下页') a, "
+        ".pager li:has-text('下页') a, "
+        "li:has-text('下页') a"
+    ).first
 
 
 # ---- 登录流程 ----
@@ -208,24 +225,20 @@ def do_scrape(debug=False):
         DEBUG_DIR.mkdir(exist_ok=True)
         print(f"🐛 调试模式：原始响应将保存到 {DEBUG_DIR}/")
 
-    captured_req = {}    # 备用：保留 on_request 以防以后需要
-    page1_meta   = {}    # 从第 1 页响应 meta 提取总行数
-    all_rows     = []
-    seen_pages   = set() # 去重：避免同一页被多次处理
-
-    DATA_URLS = ('get-robot-data', 'getDataList')
+    page1_meta = {}
+    all_rows = []
+    seen_pages = set()
+    max_pages = 30  # 备用上限
 
     def on_response(resp):
-        if not any(kw in resp.url for kw in DATA_URLS):
+        if not _is_data_url(resp.url):
             return
         try:
             body = resp.json()
         except Exception:
             return
 
-        # 提取 meta（含总行数）和当前页码
         cur_page = None
-        # 结构 A（get-robot-data）: body['data']['answer'][0].txt[].content.components[].data.meta
         try:
             answer = body['data']['answer'][0]
             for txt_key in ('txt', 'txt_list'):
@@ -239,7 +252,6 @@ def do_scrape(debug=False):
                             cur_page = meta.get('page', 1)
         except Exception:
             pass
-        # 结构 B1（getDataList）: body['answer']['components'][].data.meta
         if cur_page is None:
             try:
                 for comp in body.get('answer', {}).get('components', []):
@@ -253,13 +265,15 @@ def do_scrape(debug=False):
                 pass
 
         if cur_page is not None and cur_page in seen_pages:
-            return   # 已处理过这一页，跳过
+            return
         if cur_page is not None:
             seen_pages.add(cur_page)
 
         if debug:
-            (DEBUG_DIR / f'resp_pg{cur_page}.json').write_text(
-                json.dumps(body, ensure_ascii=False, indent=2), encoding='utf-8'
+            debug_page = 'unknown' if cur_page is None else str(cur_page)
+            write_text_atomic(
+                DEBUG_DIR / f'resp_pg{debug_page}.json',
+                json.dumps(body, ensure_ascii=False, indent=2),
             )
 
         rows = _extract_from_response(body, debug=debug)
@@ -269,10 +283,8 @@ def do_scrape(debug=False):
             row_count = extra.get('row_count', '?')
             print(f"  ✅ 第 {cur_page} 页: {len(rows)} 行  (累计 {len(all_rows)}, 总行数={row_count})")
 
-    max_pages = 30  # 备用上限
-
     with sync_playwright() as p:
-        print("🚀 启动无头浏览器...")
+        print("🚀 启动无头浏览器（带 session）...")
         browser = p.chromium.launch(
             headless=True,
             args=["--disable-blink-features=AutomationControlled"],
@@ -289,7 +301,7 @@ def do_scrape(debug=False):
         pw_page = context.new_page()
         pw_page.on('response', on_response)
 
-        print("🌐 注入登录态...")
+        print("🌐 访问首页...")
         pw_page.goto("https://www.iwencai.com/", timeout=30_000, wait_until='domcontentloaded')
         inject_localstorage(pw_page)
 
@@ -299,25 +311,27 @@ def do_scrape(debug=False):
         except PWTimeout:
             print("⚠️  networkidle 超时，继续...")
 
-        time.sleep(3)  # 确保第 1 页响应回调完成
+        time.sleep(3)
+
+        if _looks_logged_out(pw_page):
+            print("❌ 当前页面看起来处于未登录状态，session 可能已失效。请先运行：python3 scrape_iwencai_xhr.py --login")
+            browser.close()
+            return False
 
         if debug:
             pw_page.screenshot(path=str(DEBUG_DIR / 'page1.png'))
 
         if not all_rows:
-            print("❌ 第 1 页未抓到数据")
             browser.close()
+            print("❌ 第 1 页未抓到数据")
             return False
 
         extra = page1_meta.get('extra', {})
         row_count = extra.get('row_count', 0)
         print(f"  总行数={row_count}")
-
-        # 点击"下页"按钮翻页，每次等待 on_response 收到新数据
         print(f"📄 开始点击翻页（目标 {row_count} 行）...")
 
         def _next_btn_state():
-            """检查"下页"按钮状态：'ok' / 'disabled' / 'notfound'，并返回调试信息。"""
             return pw_page.evaluate("""() => {
                 const lis = document.querySelectorAll('.pager li, .pcwencai-pagination li');
                 const info = [];
@@ -342,22 +356,18 @@ def do_scrape(debug=False):
                 print("  ⚠️  未找到下页按钮，停止")
                 break
             if state == 'disabled':
-                print(f"  ✅ 已到最后一页，停止")
+                print("  ✅ 已到最后一页，停止")
                 break
-
-            # 用 expect_response 等待翻页 API 响应（getDataList 或 get-robot-data）
             try:
-                with pw_page.expect_response(
-                    lambda r: any(kw in r.url for kw in ('getDataList', 'get-robot-data')),
-                    timeout=15_000
-                ):
-                    pw_page.locator('.pcwencai-pagination li:last-child a').scroll_into_view_if_needed()
-                    pw_page.click('.pcwencai-pagination li:last-child a', timeout=5_000)
+                with pw_page.expect_response(lambda r: _is_data_url(r.url), timeout=15_000):
+                    next_button = _next_button_locator(pw_page)
+                    next_button.scroll_into_view_if_needed()
+                    next_button.click(timeout=5_000)
             except Exception as e:
                 print(f"  ⚠️  第 {pg+1} 页点击/等待失败: {e}")
                 break
             pg += 1
-            time.sleep(1.5)  # 等待 on_response 回调 + Vue 组件重绘
+            time.sleep(1.5)
 
         browser.close()
 
@@ -379,9 +389,7 @@ def do_scrape(debug=False):
                 all_keys.append(k)
 
     output = {'rows': all_rows, 'keys': all_keys}
-    OUTPUT_JSON.write_text(
-        json.dumps(output, ensure_ascii=False), encoding='utf-8'
-    )
+    write_text_atomic(OUTPUT_JSON, json.dumps(output, ensure_ascii=False))
     print(f"💾 已保存 → {OUTPUT_JSON}  ({OUTPUT_JSON.stat().st_size / 1024 / 1024:.2f} MB)")
     return True
 
@@ -401,7 +409,6 @@ if __name__ == '__main__':
     success = do_scrape(debug=debug)
 
     if success and build:
-        import subprocess
         print("\n🔨 运行 build_html.py...")
         result = subprocess.run(
             [sys.executable, str(BASE_DIR / 'build_html.py')],

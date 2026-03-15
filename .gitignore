@@ -28,4 +28,6 @@ iwencai_session.json
 
 # 调试响应文件
 debug_responses/
-\n# Backup directory\n_deprecated_backup/
+
+# Backup directory
+_deprecated_backup/

@@ -12,14 +12,14 @@ jobs:
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 138.2.85.51
-          username: ubuntu
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           timeout: 30s
           command_timeout: 5m
           script: |
-            cd /opt/1panel/apps/openresty/openresty/www/sites/aimarket365.cloud/index
+            cd /home/ubuntu/stocks
             git fetch origin main
             git reset --hard origin/main
             python3 build_html.py

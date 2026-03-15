@@ -801,6 +801,21 @@ _data_bundle = {
 with open(os.path.join(BASE_DIR, 'data.js'), 'w', encoding='utf-8') as f:
     f.write('window.STOCK_DATA=' + json.dumps(_data_bundle, ensure_ascii=False, separators=(',', ':')) + ';')
 
+# Update index.html to cache-bust data.js
+index_path = os.path.join(BASE_DIR, 'index.html')
+if os.path.exists(index_path):
+    with open(index_path, 'r', encoding='utf-8') as f:
+        html_content = f.read()
+    timestamp = int(datetime.now().timestamp())
+    new_html_content = re.sub(
+        r'<script src="data\.js(?:\?t=\d+)?"></script>',
+        f'<script src="data.js?t={timestamp}"></script>',
+        html_content
+    )
+    with open(index_path, 'w', encoding='utf-8') as f:
+        f.write(new_html_content)
+    print(f"✅ index.html updated with cache-busting timestamp: ?t={timestamp}")
+
 print(f"Columns: {len(headers)}, Rows: {len(rows)}")
 print(f"N_PERIODS={N_PERIODS}, PERIOD_START={PERIOD_START}")
 print(f"ROIC_START_IDX={ROIC_START_IDX}, ROIC_END_IDX={ROIC_END_IDX}")

@@ -219,27 +219,77 @@ body::before {
   overflow: auto; height: calc(100vh - 156px); overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;  /* momentum scroll on legacy WebView */
   will-change: scroll-position;
-  padding: 18px 20px 22px;
+  padding: 18px 22px 32px;
+  position: relative;
+}
+.table-wrap::before,
+.table-wrap::after {
+  content: "";
+  position: sticky;
+  left: 0;
+  right: 0;
+  display: block;
+  height: 16px;
+  pointer-events: none;
+  z-index: 11;
+}
+.table-wrap::before {
+  top: 0;
+  margin-bottom: -16px;
+  background: linear-gradient(180deg, rgba(244, 247, 250, 0.9), rgba(244, 247, 250, 0));
+}
+.table-wrap::after {
+  bottom: 0;
+  margin-top: -16px;
+  background: linear-gradient(0deg, rgba(244, 247, 250, 0.9), rgba(244, 247, 250, 0));
 }
 
 /* Table */
-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; background: rgba(255,255,255,0.72); border-radius: 18px; box-shadow: 0 1px 0 rgba(255,255,255,.5); overflow: hidden; }
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+  background: rgba(255,255,255,0.84);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 22px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.035);
+  overflow: hidden;
+}
 thead th {
   position: sticky; top: 0; z-index: 10;
-  background: linear-gradient(180deg, rgba(249,250,251,0.96), rgba(239,244,248,0.96)); color: #1e293b;
-  padding: 0 8px; height: 42px; white-space: nowrap;
-  font-weight: 600; font-size: 12px; border-right: 1px solid #dde3ec;
-  border-bottom: 2px solid #dde3ec;
+  background: linear-gradient(180deg, rgba(253,254,255,0.98), rgba(248,250,252,0.98));
+  color: #1e293b;
+  padding: 0 10px; height: 46px; white-space: nowrap;
+  font-weight: 600; font-size: 12px; border-right: 1px solid rgba(226, 232, 240, 0.82);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.96);
   cursor: pointer; user-select: none; vertical-align: middle; text-align: center;
-  border-left: 3px solid transparent;
+  border-left: 2px solid transparent;
 }
-thead th:hover { background: #e8edf5; }
-thead th.sort-asc::after { content: ' ▲'; color: #c41e3a; font-size: 10px; }
-thead th.sort-desc::after { content: ' ▼'; color: #c41e3a; font-size: 10px; }
-thead th .th-metric { display: block; font-weight: 600; color: #1e293b; }
-thead th .th-unit  { display: block; font-size: 9px; color: #64748b; margin-top: 1px; font-weight: 400; }
-thead th .th-date  { display: block; font-size: 10px; color: #94a3b8; margin-top: 1px; }
-thead th .th-rank-group { display: block; font-size: 9px; color: #94a3b8; font-weight: 400; margin-bottom: 1px; }
+thead th:hover { background: linear-gradient(180deg, rgba(248,250,252,1), rgba(242,246,250,1)); }
+thead th.active-col {
+  background: linear-gradient(180deg, rgba(252,247,243,0.98), rgba(250,241,236,0.98));
+  border-bottom-color: rgba(226, 120, 104, 0.32);
+}
+thead th.sort-asc::after { content: ' ▲'; color: var(--accent); font-size: 10px; }
+thead th.sort-desc::after { content: ' ▼'; color: var(--accent); font-size: 10px; }
+thead th .th-metric { display: block; font-weight: 615; color: #233042; letter-spacing: -0.015em; }
+thead th .th-unit  { display: block; font-size: 8.5px; color: #7b8aa0; margin-top: 1px; font-weight: 500; }
+thead th .th-date  { display: block; font-size: 9px; color: #9aa8b9; margin-top: 1px; font-weight: 500; }
+thead th .th-rank-group { display: block; font-size: 8px; color: #97a5b7; font-weight: 500; margin-bottom: 1px; letter-spacing: 0.045em; }
+thead th.rank-band {
+  background: linear-gradient(180deg, rgba(250,252,254,0.98), rgba(246,249,252,0.98));
+  color: #64748b;
+  border-right: 1px solid rgba(226, 232, 240, 0.82);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.96);
+  border-left: 0;
+  cursor: default;
+  letter-spacing: 0.04em;
+}
+thead th.rank-band.active-col {
+  background: linear-gradient(180deg, rgba(252,247,243,0.98), rgba(250,241,236,0.98));
+  color: #9f4032;
+}
 
 /* Sticky cols in header */
 thead tr:first-child th:nth-child(1) { position: sticky; left: 0; z-index: 20; min-width: 80px; max-width: 80px; will-change: transform; }
@@ -268,37 +318,45 @@ th.group-start[data-group="支付股息"]   { border-left-color: #d97706; }
 thead th:not(.group-start) { border-left-color: transparent; }
 
 /* Body */
-tbody tr:nth-child(even) { background: rgba(249,251,252,0.76); }
-tbody tr:nth-child(odd) { background: rgba(255,255,255,0.9); }
-tbody tr:hover td { background: #fff8f6 !important; }
+tbody tr:nth-child(even) { background: rgba(249, 251, 253, 0.64); }
+tbody tr:nth-child(odd) { background: rgba(255, 255, 255, 0.94); }
+tbody tr:hover td { background: rgba(252, 247, 243, 0.94) !important; }
 td {
-  padding: 0 8px; height: 32px; white-space: nowrap;
-  border-right: 1px solid #e6e9f0; border-bottom: 1px solid #e6e9f0;
-  text-align: right; vertical-align: middle; font-size: 12px;
+  padding: 0 10px; height: 36px; white-space: nowrap;
+  border-right: 1px solid rgba(232, 236, 242, 0.72);
+  border-bottom: 1px solid rgba(232, 236, 242, 0.78);
+  text-align: right; vertical-align: middle; font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
   background: inherit;
 }
-tbody td:nth-child(1), tbody td:nth-child(2) { text-align: left; }
+tbody td:nth-child(1), tbody td:nth-child(2) { text-align: left; letter-spacing: -0.01em; }
 td.neg { color: #c42e10; }
-td.pos { color: #1a7040; }
-/* Highlight '综合排名' (Column 39) */
-td[data-colidx="39"] { color: #c41e3a !important; font-weight: 700 !important; }
+td.pos { color: #16624b; }
+td.active-col.active-numeric {
+  background-image: linear-gradient(90deg, rgba(186,44,31,0.045), transparent 74%);
+  color: var(--accent) !important;
+  font-weight: 800 !important;
+}
 
 /* Sticky body cells */
 tbody td:nth-child(1) {
   position: sticky; left: 0; z-index: 5;
-  min-width: 80px; max-width: 80px; font-family: monospace; color: #555;
+  min-width: 80px; max-width: 80px; font-family: monospace; color: #728094;
   will-change: transform;
 }
 tbody td:nth-child(2) {
   position: sticky; left: 80px; z-index: 5;
-  min-width: 110px; max-width: 110px; font-weight: 500; color: #1a2332;
-  border-right: 2px solid #c0c8d8; will-change: transform;
+  min-width: 110px; max-width: 110px; font-weight: 560; color: #1f2937;
+  border-right: 1px solid rgba(203, 213, 225, 0.92); will-change: transform;
 }
 /* Standardize zebra stripes by using background: inherit on sticky cells */
 #mainTable.table-has-code tbody td:nth-child(1),
 #mainTable.table-has-code tbody td:nth-child(2),
 tbody td:nth-child(1),
-tbody td:nth-child(2) { background: inherit; }
+tbody td:nth-child(2) {
+  background: inherit;
+  box-shadow: 8px 0 16px rgba(244, 247, 250, 0.58);
+}
 
 /* Export button */
 .btn-export { background: #15803d; color: #fff; border-color: #15803d; box-shadow: 0 1px 3px rgba(21,128,61,.2); }
@@ -453,22 +511,23 @@ tbody td:nth-child(2) { background: inherit; }
   .sb-stat { padding: 0 11px; }
 
   /* Table wrapper */
-  .table-wrap { height: calc(100vh - 150px); touch-action: pan-x pan-y; padding: 8px 8px 12px; }
+  .table-wrap { height: calc(100vh - 150px); touch-action: pan-x pan-y; padding: 8px 8px 16px; }
 
   /* Table */
-  thead th { height: 44px; font-size: 11px; padding: 0 5px; border-right: 1px solid #dde3ec; }
+  thead th { height: 44px; font-size: 11px; padding: 0 6px; border-right: 1px solid rgba(221,227,236,0.72); }
   thead th .th-metric { font-size: 11px; }
   thead th .th-unit { font-size: 8px; }
-  thead th .th-rank-group { display: block; font-size: 8px; color: #94a3b8; font-weight: 400; margin-bottom: 0px; text-align: center; width: 100%; border-bottom: 1px solid rgba(0,0,0,0.05); margin-bottom: 2px; padding-bottom: 1px; }
-  td { height: 36px; font-size: 11.5px; padding: 0 5px; }
+  thead th .th-rank-group { display: block; font-size: 8px; color: #94a3b8; font-weight: 500; margin-bottom: 0px; text-align: center; width: 100%; border-bottom: 1px solid rgba(0,0,0,0.04); margin-bottom: 2px; padding-bottom: 1px; }
+  thead th.rank-band { height: 22px; font-size: 10px; }
+  td { height: 36px; font-size: 11px; padding: 0 6px; }
 
   /* Mobile col layout: 代码隐藏 → 简称=nth-child(1) */
   #mainTable thead tr:first-child th:nth-child(1) { min-width: 96px; max-width: 96px; left: 0; z-index: 25; }
   #mainTable tbody td:nth-child(1) {
     position: sticky !important; z-index: 10; left: 0 !important;
     min-width: 96px; max-width: 96px;
-    font-family: inherit; font-weight: 500; color: #1a2332;
-    border-right: 2px solid #c0c8d8; will-change: transform;
+    font-family: inherit; font-weight: 560; color: #1a2332;
+    border-right: 1px solid rgba(186,196,208,0.88); will-change: transform;
     white-space: normal; word-break: break-all; line-height: 1.25;
     text-align: left !important; background: inherit;
   }
@@ -477,7 +536,7 @@ tbody td:nth-child(2) { background: inherit; }
   #mainTable.table-has-code thead tr:first-child th:nth-child(1) { min-width: 54px; max-width: 54px; left: 0; z-index: 25; border-right: 1px solid #dde3ec; }
   #mainTable.table-has-code tbody td:nth-child(1) { min-width: 54px; max-width: 54px; left: 0 !important; font-family: monospace; text-align: left !important; border-right: 1px solid #e6e9f0; font-size: 10.5px; }
   #mainTable.table-has-code thead tr:first-child th:nth-child(2) { position: sticky; left: 54px; min-width: 96px; max-width: 96px; z-index: 25; }
-  #mainTable.table-has-code tbody td:nth-child(2) { position: sticky !important; left: 54px !important; min-width: 96px; max-width: 96px; z-index: 10; border-right: 2px solid #c0c8d8; text-align: left !important; }
+  #mainTable.table-has-code tbody td:nth-child(2) { position: sticky !important; left: 54px !important; min-width: 96px; max-width: 96px; z-index: 10; border-right: 1px solid rgba(176,187,201,0.95); text-align: left !important; }
   
   /* Ranking sub-columns: equal width */
   #mainTable thead th[data-colidx="34"], #mainTable thead th[data-colidx="35"], 
@@ -784,6 +843,17 @@ function parseNum(s) {
   return isNaN(v) ? null : v * m;
 }
 
+function parseStrictNum(s) {
+  if (s === null || s === undefined || s === '--') return null;
+  s = String(s).replace(/,/g, '').trim();
+  let m = 1;
+  if (s.endsWith('亿')) { m = 1e8; s = s.slice(0, -1); }
+  else if (s.endsWith('万')) { m = 1e4; s = s.slice(0, -1); }
+  if (!/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(s)) return null;
+  const v = parseFloat(s);
+  return isNaN(v) ? null : v * m;
+}
+
 function fmtYi(n) {
   // Pure number in 亿 units — no unit suffix (unit shown in column header)
   const yi = n / 1e8;
@@ -1047,6 +1117,22 @@ function cleanColName(name) {
   return name.replace(/[（(][^）)]*[）)]/g, '').trim();
 }
 
+function isRankMetricName(name) {
+  return name.endsWith('排名') || name === '综合分数';
+}
+
+function isActiveColumn(colidx) {
+  return String(sortCol) === String(colidx);
+}
+
+function isRankColumn(col) {
+  return isRankMetricName(cleanColName(col.name));
+}
+
+function isHighlightEligibleRankColumn(col) {
+  return isRankColumn(col);
+}
+
 // ---- Build header ----
 function buildHeader() {
   const thead = document.getElementById('tableHead');
@@ -1076,6 +1162,7 @@ function buildHeader() {
       if (String(sortCol) === String(col.idx)) {
         th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
       }
+      if (isActiveColumn(col.idx)) th.classList.add('active-col');
       th.addEventListener('click', () => onSortClick(col.idx));
       tr.appendChild(th);
     });
@@ -1098,23 +1185,19 @@ function buildHeader() {
       if (String(sortCol) === String(col.idx)) {
         th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
       }
+      if (isActiveColumn(col.idx)) th.classList.add('active-col');
       th.addEventListener('click', () => onSortClick(col.idx));
 
       const metric = cleanColName(col.name);
-      const isRank = metric.endsWith('排名') || metric === '综合分数';
+      const isRank = isRankMetricName(metric);
 
       if (isRank) {
         if (i === rankStartIdx) {
           const gth = document.createElement('th');
           gth.textContent = '排名维度';
           gth.colSpan = rankCount;
-          gth.style.height = '22px';
-          gth.style.fontSize = '11px';
-          gth.style.fontWeight = '700';
-          gth.style.color = '#1e293b';
-          gth.style.background = '#f1f4f8';
-          gth.style.borderBottom = '1px solid #dde3ec';
-          gth.style.textAlign = 'center';
+          gth.classList.add('rank-band');
+          if (colDefs.some(c => isRankColumn(c) && isActiveColumn(c.idx))) gth.classList.add('active-col');
           tr1.appendChild(gth);
         }
         th.innerHTML = `<span class="th-metric">${metric.replace('排名','')}</span>`;
@@ -1172,10 +1255,14 @@ function buildBody() {
     colDefs.forEach((col, pos) => {
       const rawVal = row[col.idx] ?? '--';
       const classes = [];
+      if (isActiveColumn(col.idx)) classes.push('active-col');
       if (!col.locked) {
-        const n = parseNum(String(rawVal));
-        if (n !== null && n < 0) classes.push('neg');
-        else if (n !== null && n > 0 && col.idx >= 4) classes.push('pos');
+        const n = parseStrictNum(String(rawVal));
+        if (n !== null) {
+          if (isActiveColumn(col.idx) && isHighlightEligibleRankColumn(col)) classes.push('active-numeric');
+          if (n < 0) classes.push('neg');
+          else if (n > 0 && col.idx >= 4) classes.push('pos');
+        }
       }
       const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
       html += `<td${cls} data-colidx="${col.idx}">${fmtCell(rawVal, col)}</td>`;
@@ -1273,7 +1360,7 @@ function onSortClick(colidx) {
     // Default to 'asc' for rankings, 'desc' for everything else
     const col = COLS.find(c => String(c.idx) === ci);
     const metric = col ? cleanColName(col.name) : '';
-    const isRank = metric.endsWith('排名') || metric === '综合分数';
+    const isRank = isRankMetricName(metric);
     sortDir = isRank ? 'asc' : 'desc';
   }
   applyFilters();

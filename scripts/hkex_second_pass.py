@@ -175,6 +175,86 @@ METRIC_ALIASES = {
     ],
 }
 
+BORROWING_NEGATION_PATTERNS = [
+    re.compile(r"\bdid not have(?: any)?\b.{0,80}\bborrowings?\b", re.IGNORECASE),
+    re.compile(r"\bno outstanding\b.{0,80}\bborrowings?\b", re.IGNORECASE),
+    re.compile(r"\bno\b.{0,40}\bborrowings?\b", re.IGNORECASE),
+    re.compile(r"\bborrowings?\b.{0,20}\b(?:was|were|is|are)\s+nil\b", re.IGNORECASE),
+    re.compile(r"\bgearing ratio\b.{0,40}\b(?:was|were|is|are)\s+nil\b", re.IGNORECASE),
+]
+
+NON_BORROWING_CURRENT_LIABILITY_TERMS = [
+    "trade payable",
+    "trade payables",
+    "other payable",
+    "other payables",
+    "amounts due to",
+    "due to the immediate holding company",
+    "due to an intermediate holding company",
+    "related parties",
+    "contract liabilities",
+    "lease liabilities",
+]
+
+BORROWING_CONTEXT_TERMS = [
+    "borrowings",
+    "bank borrowings",
+    "bank loans",
+    "loans",
+    "interest-bearing",
+]
+
+ZERO_BORROWING_RULES = [
+    {
+        "metrics": ("短期借款", "长期借款"),
+        "alias": "no short-term or long-term bank borrowings",
+        "pattern": re.compile(
+            r"\bdid not have any short-term or long-term bank borrowings\b",
+            re.IGNORECASE,
+        ),
+    },
+    {
+        "metrics": ("短期借款", "长期借款"),
+        "alias": "no borrowings",
+        "pattern": re.compile(
+            r"\b(?:did not have any|has no|have no|had no|no outstanding)\b.{0,60}\bborrowings?\b",
+            re.IGNORECASE,
+        ),
+    },
+    {
+        "metrics": ("短期借款", "长期借款"),
+        "alias": "no interest-bearing bank and other borrowings",
+        "pattern": re.compile(
+            r"\bdid not have any interest-bearing bank and other borrowings\b",
+            re.IGNORECASE,
+        ),
+    },
+    {
+        "metrics": ("短期借款", "长期借款"),
+        "alias": "no bank and other borrowings",
+        "pattern": re.compile(
+            r"\bno outstanding bank and other borrowings\b",
+            re.IGNORECASE,
+        ),
+    },
+    {
+        "metrics": ("长期借款",),
+        "alias": "no long-term borrowings",
+        "pattern": re.compile(
+            r"\b(?:does not have any|did not have any|has no|have no)\b.{0,20}\blong-term borrowings\b",
+            re.IGNORECASE,
+        ),
+    },
+    {
+        "metrics": ("短期借款",),
+        "alias": "no short-term borrowings",
+        "pattern": re.compile(
+            r"\b(?:does not have any|did not have any|has no|have no)\b.{0,20}\bshort-term borrowings\b",
+            re.IGNORECASE,
+        ),
+    },
+]
+
 CASH_COMPONENTS = [
     "现金及现金等价物",
     "受限制货币资金",
@@ -386,6 +466,8 @@ def period_search_window(period_label: str) -> tuple[date, date]:
 def score_result(result: SearchResult, period_label: str) -> int:
     lower_title = result.title.lower()
     score = 0
+    if "clarification announcement" in lower_title:
+        score -= 20
     for marker in REPORT_KEYWORDS.get(period_label[4:], []):
         if marker in lower_title:
             score += 10
@@ -477,6 +559,28 @@ def tail_after_alias(text: str, alias: str) -> str:
     if not match:
         return text
     return text[match.end() :]
+
+
+def has_negated_borrowings_context(text: str) -> bool:
+    normalized = normalize_ws(text).lower()
+    return any(pattern.search(normalized) for pattern in BORROWING_NEGATION_PATTERNS)
+
+
+def is_false_positive_current_liability_hit(metric: str, alias: str, text: str) -> bool:
+    if metric != "短期借款":
+        return False
+    if alias.lower() not in {"amount due within one year", "repayable within one year"}:
+        return False
+    normalized = normalize_ws(text).lower()
+    has_non_borrowing_term = any(term in normalized for term in NON_BORROWING_CURRENT_LIABILITY_TERMS)
+    has_borrowing_term = any(term in normalized for term in BORROWING_CONTEXT_TERMS)
+    return has_non_borrowing_term and not has_borrowing_term
+
+
+def should_skip_metric_hit(metric: str, alias: str, text: str) -> bool:
+    if metric in {"短期借款", "长期借款"} and has_negated_borrowings_context(text):
+        return True
+    return is_false_positive_current_liability_hit(metric, alias, text)
 
 
 def record_line_hit(
@@ -584,6 +688,8 @@ def find_metric_amounts_by_lines(
             matched_alias = next((alias for alias in direct_aliases if alias.lower() in lower), None)
             if matched_alias is None:
                 continue
+            if should_skip_metric_hit(metric, matched_alias, line):
+                continue
             tail = tail_after_alias(line, matched_alias)
             if has_placeholder_before_value(tail):
                 continue
@@ -595,6 +701,8 @@ def find_metric_amounts_by_lines(
                 continue
 
             window = " ".join(lines[index : index + 3])
+            if should_skip_metric_hit(metric, matched_alias, window):
+                continue
             values = choose_line_numeric_values(window)
             if values:
                 record_line_hit(hits, matched_alias, window, values[0], multiplier, fx_to_hkd)
@@ -630,6 +738,8 @@ def find_metric_amounts_by_lines(
                     break
             if candidate_line is None:
                 candidate_line = " ".join(window_lines)
+            if should_skip_metric_hit(metric, matched_context or matched_primary, candidate_line):
+                continue
             if matched_context:
                 tail = tail_after_alias(candidate_line, matched_context)
                 if has_placeholder_before_value(tail):
@@ -660,6 +770,8 @@ def find_metric_amounts(text: str, metrics: Iterable[str], multiplier: int, fx_t
                 start = max(0, match.start() - 40)
                 end = min(len(text), match.end() + 160)
                 snippet = text[start:end]
+                if should_skip_metric_hit(metric, alias, snippet):
+                    continue
                 numeric_tokens = number_pattern.findall(snippet)
                 parsed = [parse_numeric_token(token) for token in numeric_tokens]
                 parsed = [value for value in parsed if value is not None]
@@ -757,6 +869,38 @@ def choose_distinct_amount_hit(hits: list[dict]) -> dict | None:
     return None
 
 
+def detect_zero_borrowing_candidates(text: str, metrics: Iterable[str]) -> dict[str, dict]:
+    normalized = normalize_ws(text)
+    lower_metrics = set(metrics)
+    candidates: dict[str, dict] = {}
+    for rule in ZERO_BORROWING_RULES:
+        if not lower_metrics.intersection(rule["metrics"]):
+            continue
+        match = rule["pattern"].search(normalized)
+        if not match:
+            continue
+        snippet = normalize_ws(normalized[max(0, match.start() - 40) : min(len(normalized), match.end() + 120)])
+        for metric in rule["metrics"]:
+            if metric not in lower_metrics or metric in candidates:
+                continue
+            candidates[metric] = {
+                "status": "zero_explicit",
+                "confidence": "high",
+                "value_hkd": 0.0,
+                "value_native": 0.0,
+                "alias": rule["alias"],
+                "snippet": snippet,
+            }
+    return candidates
+
+
+def confidence_for_metric_hit(metric: str, hit: dict) -> str:
+    score = score_metric_hit(metric, hit)
+    if metric in {"长期借款", "短期借款", "资本性支出"}:
+        return "high" if score >= 20 else "medium"
+    return "high" if score >= 10 else "medium"
+
+
 def score_metric_hit(metric: str, hit: dict) -> int:
     alias = hit.get("alias", "").lower()
     snippet = hit.get("snippet", "").lower()
@@ -842,21 +986,26 @@ def build_supplement_candidates(target: dict, doc: dict) -> dict:
             if cash and cash["status"] in {"strong", "base"}:
                 candidates[metric] = {
                     "status": cash["status"],
+                    "confidence": "high" if cash["status"] == "strong" else "medium",
                     "value_hkd": cash["total_hkd"],
                     "value_native": cash["total_native"],
                     "components": cash["components"],
                 }
             continue
         chosen = choose_metric_candidate(metric, doc["metric_amounts"])
-        if chosen is None:
+        if chosen is not None:
+            candidates[metric] = {
+                "status": "direct",
+                "confidence": confidence_for_metric_hit(metric, chosen),
+                "value_hkd": chosen["value_hkd"],
+                "value_native": chosen["normalized_value"],
+                "alias": chosen["alias"],
+                "snippet": chosen["snippet"],
+            }
             continue
-        candidates[metric] = {
-            "status": "direct",
-            "value_hkd": chosen["value_hkd"],
-            "value_native": chosen["normalized_value"],
-            "alias": chosen["alias"],
-            "snippet": chosen["snippet"],
-        }
+        zero_candidate = doc.get("zero_borrowing_candidates", {}).get(metric)
+        if zero_candidate is not None:
+            candidates[metric] = zero_candidate
     return candidates
 
 
@@ -974,6 +1123,7 @@ def main() -> int:
                 find_metric_amounts(text, metrics_for_amounts, unit_multiplier, fx_rate),
             )
             cash_rebuild = aggregate_cash_components(amounts) if "总现金" in target["core_missing"] else None
+            zero_borrowing_candidates = detect_zero_borrowing_candidates(text, target["core_missing"])
             doc_reports.append(
                 {
                     "title": doc.title,
@@ -988,6 +1138,7 @@ def main() -> int:
                     "metric_snippets": snippets,
                     "metric_amounts": amounts,
                     "cash_rebuild": cash_rebuild,
+                    "zero_borrowing_candidates": zero_borrowing_candidates,
                 }
             )
 

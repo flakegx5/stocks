@@ -56,14 +56,14 @@ function closeRules() {
 }
 
 function updateMobileTableScrollMode() {
-  if (!dom.tableWrap || !dom.controls) return;
+  if (!dom.tableWrap || !dom.pageHeader) return;
   if (window.innerWidth >= 768) {
     dom.tableWrap.classList.remove('table-scroll-active');
     return;
   }
-  const controlsBottom = dom.controls.getBoundingClientRect().bottom;
+  const headerBottom = dom.pageHeader.getBoundingClientRect().bottom;
   const tableTop = dom.tableWrap.getBoundingClientRect().top;
-  const shouldActivate = tableTop <= controlsBottom + 8;
+  const shouldActivate = tableTop <= headerBottom + 4;
   dom.tableWrap.classList.toggle('table-scroll-active', shouldActivate);
 }
 

@@ -138,6 +138,7 @@ METRIC_ALIASES = {
         "capital commitments",
         "capital expenditure contracted for",
         "capital commitments contracted for",
+        "commitments in relation to expenditure on properties under development",
         "purchase of property, plant and equipment",
         "additions to property, plant and equipment",
     ],
@@ -202,6 +203,14 @@ BORROWING_CONTEXT_TERMS = [
     "bank loans",
     "loans",
     "interest-bearing",
+]
+
+BORROWING_FLOW_TERMS = [
+    "proceeds from",
+    "repayments of",
+    "repayment of",
+    "net cash from financing activities",
+    "net cash used in financing activities",
 ]
 
 ZERO_BORROWING_RULES = [
@@ -485,7 +494,7 @@ def score_result(result: SearchResult, period_label: str) -> int:
     return score
 
 
-def extract_pdf_text(pdf_bytes: bytes, max_pages: int = 20) -> str:
+def extract_pdf_text(pdf_bytes: bytes, max_pages: int = 30) -> str:
     reader = PdfReader(io.BytesIO(pdf_bytes))
     pages = []
     for page in reader.pages[:max_pages]:
@@ -533,6 +542,12 @@ def parse_numeric_token(token: str) -> float | None:
     return -value if negative else value
 
 
+def snippet_multiplier(snippet: str, default_multiplier: int) -> int:
+    if re.search(r"\b(?:HK\$|RMB|USD|US\$|CAD|C\$|EUR)\s*\d[\d,]*(?:\.\d+)?\b", snippet, flags=re.IGNORECASE):
+        return 1
+    return default_multiplier
+
+
 def numbers_from_text(text: str) -> list[float]:
     values = []
     for token in re.findall(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", text):
@@ -544,8 +559,23 @@ def numbers_from_text(text: str) -> list[float]:
 
 def choose_line_numeric_values(line: str) -> list[float]:
     values = numbers_from_text(line)
-    if len(values) >= 3 and abs(values[0]) <= 100 and float(values[0]).is_integer():
+    normalized = normalize_ws(line)
+    if (
+        len(values) >= 2
+        and abs(values[0]) <= 100
+        and float(values[0]).is_integer()
+        and re.search(r"\b\d{1,2}\s+[-—–]{1,3}\s+\(?-?\d", normalized)
+    ):
+        return []
+    if len(values) >= 2 and abs(values[0]) <= 100 and float(values[0]).is_integer():
         return values[1:]
+    if (
+        len(values) == 1
+        and abs(values[0]) <= 100
+        and float(values[0]).is_integer()
+        and re.search(r"\b\d{1,2}(?:\s+[-—–]{1,3}){1,}$", normalized)
+    ):
+        return []
     return values
 
 
@@ -580,6 +610,8 @@ def is_false_positive_current_liability_hit(metric: str, alias: str, text: str) 
 def should_skip_metric_hit(metric: str, alias: str, text: str) -> bool:
     if metric in {"短期借款", "长期借款"} and has_negated_borrowings_context(text):
         return True
+    if metric in {"短期借款", "长期借款"} and any(term in normalize_ws(text).lower() for term in BORROWING_FLOW_TERMS):
+        return True
     return is_false_positive_current_liability_hit(metric, alias, text)
 
 
@@ -591,7 +623,8 @@ def record_line_hit(
     multiplier: int,
     fx_to_hkd: float | None,
 ) -> None:
-    normalized = raw_value * multiplier
+    applied_multiplier = snippet_multiplier(line, multiplier)
+    normalized = raw_value * applied_multiplier
     hits.append(
         {
             "alias": alias,
@@ -601,6 +634,27 @@ def record_line_hit(
             "value_hkd": normalized * fx_to_hkd if fx_to_hkd is not None else None,
         }
     )
+
+
+def collect_capex_component_values(lines: list[str]) -> list[float]:
+    component_values = []
+    for line in lines:
+        lower = line.lower()
+        if not any(
+            token in lower
+            for token in [
+                "acquisition of property, plant and equipment",
+                "construction of property, plant and equipment",
+                "purchase of property, plant and equipment",
+                "additions to property, plant and equipment",
+                "properties under development",
+            ]
+        ):
+            continue
+        values = choose_line_numeric_values(line)
+        if values:
+            component_values.append(values[0])
+    return component_values
 
 
 def metric_context_aliases(metric: str) -> tuple[list[str], list[str]]:
@@ -685,29 +739,87 @@ def find_metric_amounts_by_lines(
 
         for index, line in enumerate(lines):
             lower = lower_lines[index]
+            alias_line = line
             matched_alias = next((alias for alias in direct_aliases if alias.lower() in lower), None)
+            if matched_alias is None and metric == "资本性支出":
+                alias_line = " ".join(lines[index : index + 2])
+                matched_alias = next(
+                    (alias for alias in direct_aliases if alias.lower() in alias_line.lower()),
+                    None,
+                )
             if matched_alias is None:
                 continue
-            if should_skip_metric_hit(metric, matched_alias, line):
+            if should_skip_metric_hit(metric, matched_alias, alias_line):
                 continue
-            tail = tail_after_alias(line, matched_alias)
+            tail = tail_after_alias(alias_line, matched_alias)
             if has_placeholder_before_value(tail):
                 continue
-            values = choose_line_numeric_values(line)
+            values = choose_line_numeric_values(tail)
+            if metric == "资本性支出" and values and all(value == 0 for value in values):
+                values = []
             if values:
-                record_line_hit(hits, matched_alias, line, values[0], multiplier, fx_to_hkd)
+                record_line_hit(hits, matched_alias, alias_line, values[0], multiplier, fx_to_hkd)
                 if len(hits) >= 5:
                     break
                 continue
 
-            window = " ".join(lines[index : index + 3])
+            if metric == "资本性支出":
+                component_values = collect_capex_component_values(lines[index : index + 5])
+                if component_values:
+                    record_line_hit(
+                        hits,
+                        matched_alias,
+                        " ".join(lines[index : index + 5]),
+                        sum(component_values),
+                        multiplier,
+                        fx_to_hkd,
+                    )
+                    if len(hits) >= 5:
+                        break
+                    continue
+
+            window_size = 5 if metric in {"短期借款", "长期借款"} else 3
+            window = " ".join(lines[index : index + window_size])
             if should_skip_metric_hit(metric, matched_alias, window):
                 continue
-            values = choose_line_numeric_values(window)
+            window_tail = tail_after_alias(window, matched_alias)
+            if metric in {"短期借款", "长期借款"} and re.search(
+                r"^\s*\d{1,2}\s+[A-Za-z]+\s+\d{1,2}\s+[A-Za-z]+",
+                window_tail,
+            ):
+                has_portion = (
+                    metric == "长期借款" and "non-current portion" in window.lower()
+                ) or (
+                    metric == "短期借款" and "current portion" in window.lower()
+                )
+                if not has_portion:
+                    continue
+            if metric == "长期借款" and "non-current portion" in window.lower():
+                portion_tail = tail_after_alias(window, "Non-current portion")
+                if has_placeholder_before_value(portion_tail):
+                    continue
+                values = choose_line_numeric_values(portion_tail)
+                if values:
+                    record_line_hit(hits, matched_alias, window, values[0], multiplier, fx_to_hkd)
+                    if len(hits) >= 5:
+                        break
+                continue
+            if metric == "短期借款" and "current portion" in window.lower():
+                portion_tail = tail_after_alias(window, "Current portion")
+                if has_placeholder_before_value(portion_tail):
+                    continue
+                values = choose_line_numeric_values(portion_tail)
+                if values:
+                    record_line_hit(hits, matched_alias, window, values[0], multiplier, fx_to_hkd)
+                    if len(hits) >= 5:
+                        break
+                continue
+            values = choose_line_numeric_values(window_tail)
             if values:
                 record_line_hit(hits, matched_alias, window, values[0], multiplier, fx_to_hkd)
                 if len(hits) >= 5:
                     break
+                continue
 
         if hits:
             results[metric] = hits
@@ -744,7 +856,9 @@ def find_metric_amounts_by_lines(
                 tail = tail_after_alias(candidate_line, matched_context)
                 if has_placeholder_before_value(tail):
                     continue
-            values = choose_line_numeric_values(candidate_line)
+            values = choose_line_numeric_values(
+                tail_after_alias(candidate_line, matched_context or matched_primary)
+            )
             if not values:
                 continue
             alias = f"{matched_primary} + {matched_context}" if matched_context else matched_primary
@@ -767,18 +881,53 @@ def find_metric_amounts(text: str, metrics: Iterable[str], multiplier: int, fx_t
                 tail = text[match.end() : min(len(text), match.end() + 24)]
                 if has_placeholder_before_value(tail):
                     continue
+                if re.search(r"^\s*\d{1,2}\s*[-—–]\s*(?:\(|-)", tail):
+                    continue
                 start = max(0, match.start() - 40)
                 end = min(len(text), match.end() + 160)
                 snippet = text[start:end]
                 if should_skip_metric_hit(metric, alias, snippet):
                     continue
-                numeric_tokens = number_pattern.findall(snippet)
+                if metric == "长期借款" and re.search(
+                    r"^\s*\d{1,2}\s+[A-Za-z]+\s+\d{1,2}\s+[A-Za-z]+",
+                    tail,
+                ):
+                    if "non-current portion" in snippet.lower():
+                        portion_tail = tail_after_alias(snippet, "Non-current portion")
+                        if has_placeholder_before_value(portion_tail):
+                            continue
+                        numeric_tokens = number_pattern.findall(portion_tail)
+                    else:
+                        continue
+                elif metric == "短期借款" and re.search(
+                    r"^\s*\d{1,2}\s+[A-Za-z]+\s+\d{1,2}\s+[A-Za-z]+",
+                    tail,
+                ):
+                    if "current portion" in snippet.lower():
+                        portion_tail = tail_after_alias(snippet, "Current portion")
+                        if has_placeholder_before_value(portion_tail):
+                            continue
+                        numeric_tokens = number_pattern.findall(portion_tail)
+                    else:
+                        continue
+                else:
+                    numeric_tokens = number_pattern.findall(tail)
                 parsed = [parse_numeric_token(token) for token in numeric_tokens]
                 parsed = [value for value in parsed if value is not None]
+                if len(parsed) >= 2 and abs(parsed[0]) <= 100 and float(parsed[0]).is_integer():
+                    parsed = parsed[1:]
+                if (
+                    len(parsed) == 1
+                    and abs(parsed[0]) <= 100
+                    and float(parsed[0]).is_integer()
+                    and re.search(r"^\s*\d{1,2}\s*[-—–(]", tail)
+                ):
+                    parsed = []
                 if not parsed:
                     continue
                 raw_value = parsed[0]
-                normalized = raw_value * multiplier
+                applied_multiplier = snippet_multiplier(snippet, multiplier)
+                normalized = raw_value * applied_multiplier
                 value_hkd = normalized * fx_to_hkd if fx_to_hkd is not None else None
                 hits.append(
                     {
@@ -1009,6 +1158,86 @@ def build_supplement_candidates(target: dict, doc: dict) -> dict:
     return candidates
 
 
+def candidate_rank(metric: str, candidate: dict) -> tuple[int, int, float]:
+    status_rank = {
+        "direct": 4,
+        "strong": 3,
+        "base": 2,
+        "zero_explicit": 1,
+    }
+    confidence_rank = {
+        "high": 2,
+        "medium": 1,
+        "low": 0,
+    }
+    value = abs(float(candidate.get("value_native") or 0.0))
+    return (
+        status_rank.get(str(candidate.get("status", "")), 0),
+        confidence_rank.get(str(candidate.get("confidence", "")), 0),
+        value,
+    )
+
+
+def build_supplement_candidates_for_docs(target: dict, docs: list[dict]) -> dict:
+    best: dict[str, dict] = {}
+    for doc in docs:
+        doc_candidates = build_supplement_candidates(target, doc)
+        for metric, candidate in doc_candidates.items():
+            current = best.get(metric)
+            if current is None or candidate_rank(metric, candidate) > candidate_rank(metric, current):
+                best[metric] = candidate
+    return best
+
+
+def analyze_doc_diagnostics(text: str) -> dict[str, bool]:
+    normalized = normalize_ws(text).lower()
+    return {
+        "has_bonds": bool(re.search(r"\bbonds?\b", normalized)),
+        "has_debentures": bool(re.search(r"\bdebentures?\b", normalized)),
+        "has_notes": bool(re.search(r"\bnotes payable\b|\bsenior notes?\b", normalized)),
+        "has_current_portion": "current portion" in normalized,
+        "has_non_current_portion": "non-current portion" in normalized,
+        "has_non_current_liabilities": "non-current liabilities" in normalized,
+        "has_interest_bearing_borrowings": "interest-bearing borrowings" in normalized,
+        "has_bank_and_other_borrowings": "bank and other borrowings" in normalized,
+    }
+
+
+def classify_probe_failure(target: dict, docs: list[dict], supplement_candidates: dict) -> dict:
+    if supplement_candidates:
+        return {"reason": "resolved", "detail": "supplement_candidates_found"}
+    if not docs:
+        return {"reason": "no_documents", "detail": "no_ranked_documents_in_search_window"}
+
+    core_missing = set(target["core_missing"])
+    has_metric_signal = any(
+        doc["metric_snippets"].get(metric) or doc["metric_amounts"].get(metric) or doc.get("zero_borrowing_candidates", {}).get(metric)
+        for doc in docs
+        for metric in core_missing
+    )
+    diagnostics = [doc.get("diagnostics", {}) for doc in docs]
+
+    if target["queue_type"] == "only_long_debt":
+        if any(diag.get("has_bonds") or diag.get("has_debentures") or diag.get("has_notes") for diag in diagnostics):
+            return {"reason": "ambiguous_debt_instrument", "detail": "debt_described_as_bonds_or_notes_without_safe_mapping"}
+        if any(diag.get("has_interest_bearing_borrowings") or diag.get("has_bank_and_other_borrowings") for diag in diagnostics):
+            has_current_only_structure = any(
+                diag.get("has_current_portion") and not diag.get("has_non_current_portion")
+                for diag in diagnostics
+            )
+            has_long_debt_structure = any(diag.get("has_non_current_portion") for diag in diagnostics)
+            if has_current_only_structure and not has_long_debt_structure:
+                return {"reason": "current_only_borrowings", "detail": "borrowing_signals_present_without_non_current_structure"}
+
+    if target["queue_type"] == "only_short_and_long_debt":
+        if any(diag.get("has_bonds") or diag.get("has_debentures") or diag.get("has_notes") for diag in diagnostics):
+            return {"reason": "ambiguous_debt_instrument", "detail": "debt_described_as_bonds_or_notes_without_safe_mapping"}
+
+    if has_metric_signal:
+        return {"reason": "signal_found_but_rejected", "detail": "metric_signal_found_but_no_safe_candidate"}
+    return {"reason": "no_metric_signal", "detail": "documents_found_but_target_metric_not_detected"}
+
+
 def find_metric_snippets(text: str, metrics: Iterable[str], radius: int = 80) -> dict[str, list[str]]:
     snippets: dict[str, list[str]] = {}
     for metric in metrics:
@@ -1139,12 +1368,14 @@ def main() -> int:
                     "metric_amounts": amounts,
                     "cash_rebuild": cash_rebuild,
                     "zero_borrowing_candidates": zero_borrowing_candidates,
+                    "diagnostics": analyze_doc_diagnostics(text),
                 }
             )
 
-        supplement_candidates = build_supplement_candidates(target, doc_reports[0]) if doc_reports else {}
+        supplement_candidates = build_supplement_candidates_for_docs(target, doc_reports) if doc_reports else {}
+        failure_analysis = classify_probe_failure(target, doc_reports, supplement_candidates)
         queue_type = target["queue_type"]
-        summary["by_type"].setdefault(queue_type, {"targets": 0, "doc_hit": 0, "candidate_hit": 0})
+        summary["by_type"].setdefault(queue_type, {"targets": 0, "doc_hit": 0, "candidate_hit": 0, "failure_reasons": {}})
         summary["by_type"][queue_type]["targets"] += 1
         if doc_reports:
             summary["doc_hit"] += 1
@@ -1152,6 +1383,9 @@ def main() -> int:
         if supplement_candidates:
             summary["candidate_hit"] += 1
             summary["by_type"][queue_type]["candidate_hit"] += 1
+        if not supplement_candidates:
+            reasons = summary["by_type"][queue_type]["failure_reasons"]
+            reasons[failure_analysis["reason"]] = reasons.get(failure_analysis["reason"], 0) + 1
 
         report.append(
             {
@@ -1164,6 +1398,7 @@ def main() -> int:
                 "candidate_count": len(results),
                 "documents": doc_reports,
                 "supplement_candidates": supplement_candidates,
+                "failure_analysis": failure_analysis,
             }
         )
 

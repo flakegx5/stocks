@@ -8,10 +8,17 @@ sys.modules.setdefault("pypdf", types.SimpleNamespace(PdfReader=object))
 
 from scripts.hkex_second_pass import (
     SearchResult,
+    classify_probe_failure,
     build_supplement_candidates,
+    build_supplement_candidates_for_docs,
+    choose_line_numeric_values,
+    find_metric_amounts_by_lines,
+    find_metric_amounts,
     detect_zero_borrowing_candidates,
     score_result,
+    snippet_multiplier,
     should_skip_metric_hit,
+    analyze_doc_diagnostics,
 )
 
 
@@ -42,6 +49,10 @@ class HkexSecondPassTests(unittest.TestCase):
     def test_keeps_real_short_term_borrowings(self):
         snippet = "Bank borrowings repayable within one year amounted to RMB320.0 million."
         self.assertFalse(should_skip_metric_hit("短期借款", "repayable within one year", snippet))
+
+    def test_skips_borrowing_cashflow_lines(self):
+        snippet = "Proceeds from bank and other loans 298,810 255,756"
+        self.assertTrue(should_skip_metric_hit("长期借款", "bank and other loans", snippet))
 
     def test_clarification_announcement_scores_below_results_announcement(self):
         clarification = SearchResult(
@@ -134,6 +145,194 @@ class HkexSecondPassTests(unittest.TestCase):
         candidates = build_supplement_candidates(target, doc)
         self.assertEqual(candidates["长期借款"]["status"], "direct")
         self.assertEqual(candidates["长期借款"]["value_native"], 320000.0)
+
+    def test_build_supplement_candidates_for_docs_uses_later_doc_hit(self):
+        target = {"core_missing": ["长期借款"]}
+        docs = [
+            {
+                "metric_amounts": {"长期借款": []},
+                "zero_borrowing_candidates": {},
+            },
+            {
+                "metric_amounts": {
+                    "长期借款": [
+                        {
+                            "alias": "long-term borrowings",
+                            "snippet": "Long-term borrowings 640,000",
+                            "raw_value": 640000.0,
+                            "normalized_value": 640000.0,
+                            "value_hkd": 640000.0,
+                        }
+                    ]
+                },
+                "zero_borrowing_candidates": {},
+            },
+        ]
+        candidates = build_supplement_candidates_for_docs(target, docs)
+        self.assertEqual(candidates["长期借款"]["status"], "direct")
+        self.assertEqual(candidates["长期借款"]["value_native"], 640000.0)
+
+    def test_build_supplement_candidates_for_docs_prefers_direct_over_zero(self):
+        target = {"core_missing": ["长期借款"]}
+        docs = [
+            {
+                "metric_amounts": {"长期借款": []},
+                "zero_borrowing_candidates": {
+                    "长期借款": {
+                        "status": "zero_explicit",
+                        "confidence": "high",
+                        "value_hkd": 0.0,
+                        "value_native": 0.0,
+                        "alias": "no long-term borrowings",
+                        "snippet": "no long-term borrowings",
+                    }
+                },
+            },
+            {
+                "metric_amounts": {
+                    "长期借款": [
+                        {
+                            "alias": "long-term borrowings",
+                            "snippet": "Long-term borrowings 128,000",
+                            "raw_value": 128000.0,
+                            "normalized_value": 128000.0,
+                            "value_hkd": 128000.0,
+                        }
+                    ]
+                },
+                "zero_borrowing_candidates": {},
+            },
+        ]
+        candidates = build_supplement_candidates_for_docs(target, docs)
+        self.assertEqual(candidates["长期借款"]["status"], "direct")
+        self.assertEqual(candidates["长期借款"]["value_native"], 128000.0)
+
+    def test_choose_line_numeric_values_skips_note_reference_column(self):
+        self.assertEqual(choose_line_numeric_values("Borrowings 13 205,082"), [205082.0])
+
+    def test_choose_line_numeric_values_ignores_note_reference_with_placeholders(self):
+        self.assertEqual(choose_line_numeric_values("Borrowings 13 - -"), [])
+
+    def test_choose_line_numeric_values_ignores_comparative_amount_after_placeholder(self):
+        self.assertEqual(choose_line_numeric_values("Borrowings 13 - 205,082"), [])
+
+    def test_find_metric_amounts_by_lines_aggregates_capex_components_after_heading(self):
+        lines = [
+            "30 June 31 December",
+            "2025 2024",
+            "RMB'000 RMB'000",
+            "Capital expenditure contracted for but not provided in",
+            "the consolidated financial statements",
+            "- acquisition of property, plant and equipment 5,237 17,058",
+            "- construction of property, plant and equipment 375,783 438,150",
+            "381,020 455,208",
+        ]
+        amounts = find_metric_amounts_by_lines(lines, ["资本性支出"], 1, 1.0)
+        self.assertEqual(amounts["资本性支出"][0]["raw_value"], 381020.0)
+
+    def test_find_metric_amounts_by_lines_extracts_property_development_commitment(self):
+        lines = [
+            "At the end of the reporting period, the Group had commitments in relation to expenditure on properties",
+            "under development of HK$2,531,687,000 (31st December, 2024: HK$2,123,477,000), which were contracted",
+            "but not provided for.",
+        ]
+        amounts = find_metric_amounts_by_lines(lines, ["资本性支出"], 1, 1.0)
+        self.assertEqual(amounts["资本性支出"][0]["raw_value"], 2531687000.0)
+
+    def test_snippet_multiplier_ignores_document_unit_when_snippet_has_explicit_currency_amount(self):
+        self.assertEqual(snippet_multiplier("HK$2,531,687,000", 1000), 1)
+
+    def test_find_metric_amounts_respects_explicit_currency_amount_over_doc_unit(self):
+        text = "The Group had commitments in relation to expenditure on properties under development of HK$2,531,687,000."
+        amounts = find_metric_amounts(text, ["资本性支出"], 1000, 1.0)
+        self.assertEqual(amounts["资本性支出"][0]["normalized_value"], 2531687000.0)
+
+    def test_find_metric_amounts_prefers_numbers_after_alias(self):
+        text = (
+            "89,615 90,000 Non-current liabilities "
+            "Bank loans and other interest-bearing borrowings 15 - (2,505) "
+            "Derivative financial instruments"
+        )
+        amounts = find_metric_amounts(text, ["长期借款"], 1, 1.0)
+        self.assertEqual(amounts["长期借款"], [])
+
+    def test_find_metric_amounts_by_lines_ignores_note_and_date_columns_before_alias_value(self):
+        lines = [
+            "15. Bank loans and other interest-bearing borrowings",
+            "30 June 31 December 2025 2024 $ million $ million",
+            "Bank loan and others 3,768 2,505",
+            "Current portion (3,768) -",
+            "Non-current portion - 2,505",
+        ]
+        amounts = find_metric_amounts_by_lines(lines, ["长期借款"], 1, 1.0)
+        self.assertEqual(amounts["长期借款"], [])
+
+    def test_find_metric_amounts_ignores_date_header_after_borrowings_alias(self):
+        text = (
+            "15. Bank loans and other interest-bearing borrowings "
+            "30 June 31 December 2025 2024 $ million $ million "
+            "Bank loan and others 3,768 2,505 Current portion (3,768) - "
+            "Non-current portion - 2,505"
+        )
+        amounts = find_metric_amounts(text, ["长期借款"], 1, 1.0)
+        self.assertEqual(amounts["长期借款"], [])
+
+    def test_classify_probe_failure_reports_no_documents(self):
+        target = {"queue_type": "only_long_debt", "core_missing": ["长期借款"]}
+        failure = classify_probe_failure(target, [], {})
+        self.assertEqual(failure["reason"], "no_documents")
+
+    def test_classify_probe_failure_reports_current_only_borrowings(self):
+        target = {"queue_type": "only_long_debt", "core_missing": ["长期借款"]}
+        docs = [
+            {
+                "metric_snippets": {"长期借款": []},
+                "metric_amounts": {"长期借款": []},
+                "zero_borrowing_candidates": {},
+                "diagnostics": {
+                    "has_interest_bearing_borrowings": True,
+                    "has_bank_and_other_borrowings": False,
+                    "has_current_portion": True,
+                    "has_non_current_portion": False,
+                    "has_non_current_liabilities": True,
+                    "has_bonds": False,
+                    "has_debentures": False,
+                    "has_notes": False,
+                },
+            }
+        ]
+        failure = classify_probe_failure(target, docs, {})
+        self.assertEqual(failure["reason"], "current_only_borrowings")
+
+    def test_classify_probe_failure_reports_ambiguous_debt_instrument(self):
+        target = {"queue_type": "only_long_debt", "core_missing": ["长期借款"]}
+        docs = [
+            {
+                "metric_snippets": {"长期借款": []},
+                "metric_amounts": {"长期借款": []},
+                "zero_borrowing_candidates": {},
+                "diagnostics": {
+                    "has_interest_bearing_borrowings": False,
+                    "has_bank_and_other_borrowings": False,
+                    "has_non_current_portion": False,
+                    "has_non_current_liabilities": False,
+                    "has_bonds": True,
+                    "has_debentures": False,
+                    "has_notes": False,
+                },
+            }
+        ]
+        failure = classify_probe_failure(target, docs, {})
+        self.assertEqual(failure["reason"], "ambiguous_debt_instrument")
+
+    def test_analyze_doc_diagnostics_detects_debt_markers(self):
+        diagnostics = analyze_doc_diagnostics(
+            "Issue of bonds. Current portion and Non-current liabilities include interest-bearing borrowings."
+        )
+        self.assertTrue(diagnostics["has_bonds"])
+        self.assertTrue(diagnostics["has_current_portion"])
+        self.assertTrue(diagnostics["has_non_current_liabilities"])
+        self.assertTrue(diagnostics["has_interest_bearing_borrowings"])
 
 
 if __name__ == "__main__":

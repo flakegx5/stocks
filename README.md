@@ -25,7 +25,7 @@
 
 | 文件 | 说明 |
 |------|------|
-| `build_html.py` | 核心构建脚本，读取 JSON 数据，生成 `index.html` + `data.js` |
+| `build_html.py` | 核心构建脚本，读取 JSON 数据，**只输出 `data.js`**（同时刷新 `index.html` 的 cache-bust 时间戳） |
 | `scrape_iwencai_xhr.py` | 数据抓取脚本（问财网，Playwright 无头浏览器） |
 | `hk_stocks_data_new.json` | 原始数据（iwencai 抓取结果，~760 只股票） |
 | `index.html` | 静态模板（~29KB，CSS + JS 逻辑） |

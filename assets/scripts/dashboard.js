@@ -22,10 +22,6 @@ const {
 } = window.DashboardView;
 const { applyResponsiveDefaults, hydrateStateFromURL, resetViewState, state } = window.DashboardState;
 const { updateURLState } = window.DashboardURL;
-let mobileTouchY = null;
-let mobileTouchInTable = false;
-const MOBILE_SCROLL_RELEASE_THRESHOLD = 18;
-
 function render(resetScroll = true) {
   if (resetScroll) resetVirtualScroll();
   updateIndustryFilter();
@@ -55,95 +51,6 @@ function onSortClick(colIdx) {
 function closeRules() {
   dom.rulesModal.classList.remove('open');
   dom.rulesOverlay.classList.remove('open');
-}
-
-function shouldLockTableScroll() {
-  if (!dom.tableWrap || !dom.pageHeader || window.innerWidth >= 768) return false;
-  const headerBottom = dom.pageHeader.getBoundingClientRect().bottom;
-  const tableTop = dom.tableWrap.getBoundingClientRect().top;
-  return tableTop <= headerBottom + 4;
-}
-
-function syncMobileTableScrollMode(forceUnlock = false) {
-  if (!dom.tableWrap) return;
-  if (window.innerWidth >= 768 || forceUnlock) {
-    dom.tableWrap.classList.remove('table-scroll-active');
-    return;
-  }
-  dom.tableWrap.classList.toggle('table-scroll-active', shouldLockTableScroll());
-}
-
-function routeTouchToTable(deltaY) {
-  if (!dom.tableWrap) return;
-  const maxScrollTop = Math.max(0, dom.tableWrap.scrollHeight - dom.tableWrap.clientHeight);
-  const nextScrollTop = dom.tableWrap.scrollTop - deltaY;
-  dom.tableWrap.scrollTop = Math.min(maxScrollTop, Math.max(0, nextScrollTop));
-}
-
-function routeTouchToPage(deltaY) {
-  window.scrollBy(0, -deltaY);
-}
-
-function initMobileTableScrollMode() {
-  if (!dom.tableWrap) return;
-
-  const requestSync = () => window.requestAnimationFrame(() => syncMobileTableScrollMode(false));
-  window.addEventListener('scroll', requestSync, { passive: true });
-  window.addEventListener('resize', () => syncMobileTableScrollMode(true), { passive: true });
-
-  document.addEventListener('touchstart', event => {
-    if (window.innerWidth >= 768) return;
-    mobileTouchY = event.touches[0]?.clientY ?? null;
-    mobileTouchInTable = dom.tableWrap.contains(event.target);
-    syncMobileTableScrollMode(false);
-  }, { passive: true });
-
-  document.addEventListener('touchmove', event => {
-    if (window.innerWidth >= 768 || mobileTouchY === null) return;
-    const currentY = event.touches[0]?.clientY;
-    if (typeof currentY !== 'number') return;
-    const deltaY = currentY - mobileTouchY;
-    mobileTouchY = currentY;
-
-    const isActive = dom.tableWrap.classList.contains('table-scroll-active');
-    if (!mobileTouchInTable && !isActive) return;
-
-    if (!isActive) {
-      if (deltaY < 0 && shouldLockTableScroll()) {
-        dom.tableWrap.classList.add('table-scroll-active');
-        event.preventDefault();
-        routeTouchToTable(deltaY);
-      } else if (mobileTouchInTable) {
-        event.preventDefault();
-        routeTouchToPage(deltaY);
-      }
-      return;
-    }
-
-    const maxScrollTop = Math.max(0, dom.tableWrap.scrollHeight - dom.tableWrap.clientHeight);
-    if (deltaY > 0 && dom.tableWrap.scrollTop <= MOBILE_SCROLL_RELEASE_THRESHOLD) {
-      dom.tableWrap.scrollTop = 0;
-      dom.tableWrap.classList.remove('table-scroll-active');
-      event.preventDefault();
-      routeTouchToPage(deltaY);
-      return;
-    }
-    if (deltaY < 0 && dom.tableWrap.scrollTop >= maxScrollTop) {
-      event.preventDefault();
-      return;
-    }
-
-    event.preventDefault();
-    routeTouchToTable(deltaY);
-  }, { passive: false });
-
-  document.addEventListener('touchend', () => {
-    mobileTouchY = null;
-    mobileTouchInTable = false;
-    syncMobileTableScrollMode(false);
-  }, { passive: true });
-
-  requestSync();
 }
 
 function syncQueueButtons() {
@@ -216,7 +123,6 @@ function init() {
   initFilterPanel(render);
   initVirtualScroll(buildBody);
   initEvents();
-  initMobileTableScrollMode();
   render();
 }
 

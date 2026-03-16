@@ -212,7 +212,7 @@ body::before {
   overflow: auto; height: calc(100vh - 156px); overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;  /* momentum scroll on legacy WebView */
   will-change: scroll-position;
-  padding: 18px 22px 32px;
+  padding: 0 22px 32px;
   position: relative;
 }
 .table-wrap::before,
@@ -227,9 +227,7 @@ body::before {
   z-index: 11;
 }
 .table-wrap::before {
-  top: 0;
-  margin-bottom: -16px;
-  background: linear-gradient(180deg, rgba(244, 247, 250, 0.9), rgba(244, 247, 250, 0));
+  display: none;  /* no top padding gap to cover */
 }
 .table-wrap::after {
   bottom: 0;
@@ -247,11 +245,11 @@ table {
   border: 1px solid rgba(226, 232, 240, 0.85);
   border-radius: 22px;
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.035);
-  overflow: hidden;
+  overflow: clip;  /* clip preserves border-radius without creating scroll context that breaks sticky */
 }
 thead th {
   position: sticky; top: 0; z-index: 10;
-  background: linear-gradient(180deg, rgba(253,254,255,0.98), rgba(248,250,252,0.98));
+  background: linear-gradient(180deg, #fdfeff, #f8fafc);  /* opaque so rows don't bleed through */
   color: #1e293b;
   padding: 0 10px; height: 46px; white-space: nowrap;
   font-weight: 600; font-size: 12px; border-right: 1px solid rgba(226, 232, 240, 0.82);
@@ -261,7 +259,7 @@ thead th {
 }
 thead th:hover { background: linear-gradient(180deg, rgba(248,250,252,1), rgba(242,246,250,1)); }
 thead th.active-col {
-  background: linear-gradient(180deg, rgba(252,247,243,0.98), rgba(250,241,236,0.98));
+  background: linear-gradient(180deg, #fcf7f3, #faf1ec);
   border-bottom-color: rgba(226, 120, 104, 0.32);
 }
 thead th.sort-asc::after { content: ' ▲'; color: var(--accent); font-size: 10px; }
@@ -271,7 +269,7 @@ thead th .th-unit  { display: block; font-size: 8.5px; color: #7b8aa0; margin-to
 thead th .th-date  { display: block; font-size: 9px; color: #9aa8b9; margin-top: 1px; font-weight: 500; }
 thead th .th-rank-group { display: block; font-size: 8px; color: #97a5b7; font-weight: 500; margin-bottom: 1px; letter-spacing: 0.045em; }
 thead th.rank-band {
-  background: linear-gradient(180deg, rgba(250,252,254,0.98), rgba(246,249,252,0.98));
+  background: linear-gradient(180deg, #fafcfe, #f6f9fc);
   color: #64748b;
   border-right: 1px solid rgba(226, 232, 240, 0.82);
   border-bottom: 1px solid rgba(226, 232, 240, 0.96);
@@ -280,7 +278,7 @@ thead th.rank-band {
   letter-spacing: 0.04em;
 }
 thead th.rank-band.active-col {
-  background: linear-gradient(180deg, rgba(252,247,243,0.98), rgba(250,241,236,0.98));
+  background: linear-gradient(180deg, #fcf7f3, #faf1ec);
   color: #9f4032;
 }
 
@@ -453,11 +451,11 @@ tbody td:nth-child(2) {
    Mobile (≤767px)
    ============================================================ */
 @media (max-width: 767px) {
-  /* Mobile switches from page scroll to table scroll once the table head reaches the header */
-  html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: auto; }
+  html, body { min-height: 100%; overflow-x: clip; overscroll-behavior-y: auto; }
 
-  /* Header */
-  .page-header { height: 54px; padding: 0 10px; }
+  /* Header — fixed so it's immune to overflow/sticky conflicts */
+  .page-header { position: fixed; left: 0; right: 0; height: 54px; padding: 0 10px; }
+  body { padding-top: 54px; }  /* compensate for fixed header */
   .brand { gap: 6px; }
   .brand-icon { width: 32px; height: 32px; }
   .page-header h1 { font-size: 16px; letter-spacing: -0.4px; }
@@ -504,18 +502,28 @@ tbody td:nth-child(2) {
   .sb-count { padding-right: 0; border-right: none; flex-shrink: 0; }
   .sb-stat { padding: 0 11px; }
 
-  /* Table wrapper */
+  /* Table wrapper — sticky: sticks below page-header, native scroll takes over */
   .table-wrap {
-    height: calc(100vh - 62px);
+    position: sticky;
+    top: 54px;                          /* page-header height on mobile */
+    height: calc(100vh - 54px);
+    height: calc(100dvh - 54px);        /* dynamic viewport for mobile browser chrome */
     overflow: auto;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: auto;        /* allow scroll-chain back to page */
     touch-action: pan-x pan-y;
-    padding: 8px 8px 16px;
+    padding: 0 8px 16px;              /* no top padding — table header sits flush */
+    background: #f1f5f9;               /* opaque: hides content scrolling behind */
   }
 
-  /* Table */
-  thead th { height: 44px; font-size: 11px; padding: 0 6px; border-right: 1px solid rgba(221,227,236,0.72); }
+  /* Table — overflow:clip preserves border-radius clipping without creating scroll context */
+  table { overflow: clip; border-radius: 14px; }
+  /* Opaque header background so rows don't bleed through sticky headers */
+  thead th { height: 44px; font-size: 11px; padding: 0 6px; border-right: 1px solid rgba(221,227,236,0.72);
+    background: linear-gradient(180deg, #fdfeff, #f8fafc); }
+  thead th.active-col { background: linear-gradient(180deg, #fcf7f3, #faf1ec); }
+  thead th.rank-band { background: linear-gradient(180deg, #fafcfe, #f6f9fc); }
+  thead th.rank-band.active-col { background: linear-gradient(180deg, #fcf7f3, #faf1ec); }
   thead th .th-metric { font-size: 11px; }
   thead th .th-unit { font-size: 8px; }
   thead th .th-rank-group { display: block; font-size: 8px; color: #94a3b8; font-weight: 500; margin-bottom: 0px; text-align: center; width: 100%; border-bottom: 1px solid rgba(0,0,0,0.04); margin-bottom: 2px; padding-bottom: 1px; }

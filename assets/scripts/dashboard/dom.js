@@ -1,5 +1,6 @@
 (() => {
 window.DashboardDOM = {
+  pageHeader: document.querySelector('.page-header'),
   controls: document.querySelector('.controls'),
   totalCount: document.getElementById('sTotalCount'),
   rowCount: document.getElementById('sRowCount'),

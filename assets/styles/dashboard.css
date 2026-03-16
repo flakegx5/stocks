@@ -480,7 +480,9 @@ tbody td:nth-child(2) {
   }
 
   .controls {
-    top: 54px; padding: 8px 10px;
+    position: static;
+    top: auto;
+    padding: 8px 10px;
     flex-wrap: nowrap; overflow-x: auto;
     -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 6px;
     touch-action: pan-x; margin: 0 10px 8px; border-radius: 16px;

@@ -1,6 +1,7 @@
-import { dom } from './dom.js';
-import { COLS, PERIODS, METRICS, COMPUTED_COL_NAMES, isMobile } from './shared.js';
-import { FIXED_TOGGLEABLE_NAMES, state } from './state.js';
+(() => {
+const dom = window.DashboardDOM;
+const { COLS, PERIODS, METRICS, COMPUTED_COL_NAMES, isMobile } = window.DashboardShared;
+const { FIXED_TOGGLEABLE_NAMES, state } = window.DashboardState;
 
 const COMPUTED_GROUPS = [
   { label: '盈利', cols: ['TTM归母净利润', 'TTM净利同比'] },
@@ -71,7 +72,7 @@ function getSectionBinding(section) {
   return { activeSet: state.visibleMetrics, items: METRICS };
 }
 
-export function buildColPicker(onVisibilityChange) {
+function buildColPicker(onVisibilityChange) {
   dom.cpBody.innerHTML =
     makeFixedSection() +
     makeComputedSection() +
@@ -101,20 +102,20 @@ export function buildColPicker(onVisibilityChange) {
   });
 }
 
-export function openColPicker(onVisibilityChange) {
+function openColPicker(onVisibilityChange) {
   dom.colPicker.classList.add('open');
   dom.cpOverlay.classList.add('open');
   dom.colPickerBtn.classList.add('active');
   buildColPicker(onVisibilityChange);
 }
 
-export function closeColPicker() {
+function closeColPicker() {
   dom.colPicker.classList.remove('open');
   dom.cpOverlay.classList.remove('open');
   dom.colPickerBtn.classList.remove('active');
 }
 
-export function initColumnPicker(onVisibilityChange) {
+function initColumnPicker(onVisibilityChange) {
   dom.colPickerBtn.addEventListener('click', () => {
     if (dom.colPicker.classList.contains('open')) {
       closeColPicker();
@@ -125,3 +126,11 @@ export function initColumnPicker(onVisibilityChange) {
   dom.cpClose.addEventListener('click', closeColPicker);
   dom.cpOverlay.addEventListener('click', closeColPicker);
 }
+
+window.DashboardColumnPicker = {
+  buildColPicker,
+  openColPicker,
+  closeColPicker,
+  initColumnPicker,
+};
+})();

@@ -1,6 +1,7 @@
-import { DEFAULT_SORT_COL, DEFAULT_SORT_DIR, state } from './state.js';
+(() => {
+const { DEFAULT_SORT_COL, DEFAULT_SORT_DIR, state } = window.DashboardState;
 
-export function updateURLState() {
+function updateURLState() {
   const params = new URLSearchParams();
   if (state.sortCol !== DEFAULT_SORT_COL) params.set('sortCol', state.sortCol);
   if (state.sortDir !== DEFAULT_SORT_DIR) params.set('sortDir', state.sortDir);
@@ -13,3 +14,8 @@ export function updateURLState() {
   const nextUrl = window.location.pathname + (queryString ? `?${queryString}` : '');
   window.history.replaceState(null, '', nextUrl);
 }
+
+window.DashboardURL = {
+  updateURLState,
+};
+})();

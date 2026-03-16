@@ -1,15 +1,15 @@
-import { dom } from './dashboard/dom.js';
-import { COLS } from './dashboard/shared.js';
-import { closeColPicker, initColumnPicker } from './dashboard/column-picker.js';
-import {
+const dom = window.DashboardDOM;
+const { COLS } = window.DashboardShared;
+const { closeColPicker, initColumnPicker } = window.DashboardColumnPicker;
+const {
   applyFilters,
   closeFilterPanel,
   initFilterPanel,
   openFilterPanel,
   updateFilterToggleStyle,
   updateIndustryFilter,
-} from './dashboard/filters.js';
-import {
+} = window.DashboardFilters;
+const {
   buildBody,
   buildHeader,
   cleanColName,
@@ -19,9 +19,9 @@ import {
   resetVirtualScroll,
   updateSummary,
   updateUpdateTime,
-} from './dashboard/view.js';
-import { applyResponsiveDefaults, hydrateStateFromURL, resetViewState, state } from './dashboard/state.js';
-import { updateURLState } from './dashboard/url.js';
+} = window.DashboardView;
+const { applyResponsiveDefaults, hydrateStateFromURL, resetViewState, state } = window.DashboardState;
+const { updateURLState } = window.DashboardURL;
 
 function render(resetScroll = true) {
   if (resetScroll) resetVirtualScroll();

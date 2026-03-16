@@ -1,5 +1,6 @@
-import { dom } from './dom.js';
-import {
+(() => {
+const dom = window.DashboardDOM;
+const {
   DATA,
   COLS,
   PCT_METRICS,
@@ -10,12 +11,12 @@ import {
   parseNum,
   parseStrictNum,
   isMobile,
-} from './shared.js';
-import { state } from './state.js';
+} = window.DashboardShared;
+const { state } = window.DashboardState;
 
 const HEADER_UNIT_OVERRIDE = { 3: '港元', 4: '%' };
 
-export function cleanColName(name) {
+function cleanColName(name) {
   const aliases = {
     '市盈率(pe,ttm)': 'TTMPE',
     '市净率(pb)': 'PB',
@@ -25,11 +26,11 @@ export function cleanColName(name) {
   return name.replace(/[（(][^）)]*[）)]/g, '').trim();
 }
 
-export function isRankMetricName(name) {
+function isRankMetricName(name) {
   return name.endsWith('排名') || name === '综合分数';
 }
 
-export function isActiveColumn(colIdx) {
+function isActiveColumn(colIdx) {
   return String(state.sortCol) === String(colIdx);
 }
 
@@ -41,7 +42,7 @@ function isHighlightEligibleRankColumn(col) {
   return isRankColumn(col);
 }
 
-export function getVisibleColDefs() {
+function getVisibleColDefs() {
   return COLS.filter(col => {
     if (col.idx === 0) return false;
     if (isMobile() && col.idx === 1) return state.visibleFixedCols.has(col.name);
@@ -54,7 +55,7 @@ export function getVisibleColDefs() {
   });
 }
 
-export function resetVirtualScroll() {
+function resetVirtualScroll() {
   if (dom.tableWrap) {
     dom.tableWrap.scrollTop = 0;
   }
@@ -71,7 +72,7 @@ function syncMeasuredRowHeight() {
   }
 }
 
-export function initVirtualScroll(onViewportChange) {
+function initVirtualScroll(onViewportChange) {
   dom.tableWrap?.addEventListener('scroll', () => {
     const scrollTop = dom.tableWrap.scrollTop;
     const viewportHeight = dom.tableWrap.clientHeight;
@@ -88,7 +89,7 @@ export function initVirtualScroll(onViewportChange) {
   });
 }
 
-export function buildHeader(onSortClick) {
+function buildHeader(onSortClick) {
   dom.tableHead.innerHTML = '';
   const colDefs = getVisibleColDefs();
 
@@ -179,7 +180,7 @@ export function buildHeader(onSortClick) {
   }
 }
 
-export function buildBody() {
+function buildBody() {
   const colDefs = getVisibleColDefs();
   const totalRows = state.displayIndices.length;
   if (totalRows === 0) {
@@ -226,11 +227,11 @@ export function buildBody() {
   syncMeasuredRowHeight();
 }
 
-export function updateSummary() {
+function updateSummary() {
   dom.rowCount.textContent = state.displayIndices.length;
 }
 
-export function exportExcel() {
+function exportExcel() {
   const colDefs = getVisibleColDefs();
   const headerRow = colDefs.map(col => {
     const pipeIndex = col.fullName.indexOf('|');
@@ -258,9 +259,24 @@ export function exportExcel() {
   XLSX.writeFile(workbook, '港股数据.xlsx');
 }
 
-export function updateUpdateTime() {
+function updateUpdateTime() {
   if (!window.STOCK_DATA?.update_time) return;
   if (dom.heroUpdateTime) {
     dom.heroUpdateTime.innerText = window.STOCK_DATA.update_time;
   }
 }
+
+window.DashboardView = {
+  cleanColName,
+  isRankMetricName,
+  isActiveColumn,
+  getVisibleColDefs,
+  resetVirtualScroll,
+  initVirtualScroll,
+  buildHeader,
+  buildBody,
+  updateSummary,
+  exportExcel,
+  updateUpdateTime,
+};
+})();

@@ -1,4 +1,5 @@
-export const dom = {
+(() => {
+window.DashboardDOM = {
   totalCount: document.getElementById('sTotalCount'),
   rowCount: document.getElementById('sRowCount'),
   heroUpdateTime: document.getElementById('heroUpdateTime'),
@@ -32,3 +33,4 @@ export const dom = {
   rulesOverlay: document.getElementById('rulesOverlay'),
   rulesClose: document.getElementById('rulesClose'),
 };
+})();

@@ -1,32 +1,32 @@
-import { dom } from './dom.js';
-
+(() => {
 const dataSource = window.STOCK_DATA;
+const dom = window.DashboardDOM;
 
-export const DATA = { headers: dataSource.headers, rows: dataSource.rows };
-export const COLS = dataSource.cols;
-export const PERIODS = dataSource.periods;
-export const METRICS = dataSource.metrics;
-export const ROIC_START = dataSource.roic_start;
-export const ROIC_END = dataSource.roic_end;
-export const TTMROE_IDX = dataSource.ttmroe_idx;
-export const TTMROIC_IDX = dataSource.ttmroic_idx;
-export const PCT_METRICS = new Set(['净利润同比', 'ROE', 'ROIC']);
-export const COMPUTED_YI_COLS = new Set(dataSource.computed_yi_cols);
-export const COMPUTED_COL_NAMES = dataSource.computed_col_names;
-export const FILTER_COLS = dataSource.filter_cols;
-export const METRICS_DEFAULT_HIDDEN = new Set(dataSource.metrics_hidden);
-export const COMPUTED_DEFAULT_HIDDEN = new Set(dataSource.computed_hidden);
-export const FIXED_DEFAULT_HIDDEN = new Set(dataSource.fixed_hidden || []);
+const DATA = { headers: dataSource.headers, rows: dataSource.rows };
+const COLS = dataSource.cols;
+const PERIODS = dataSource.periods;
+const METRICS = dataSource.metrics;
+const ROIC_START = dataSource.roic_start;
+const ROIC_END = dataSource.roic_end;
+const TTMROE_IDX = dataSource.ttmroe_idx;
+const TTMROIC_IDX = dataSource.ttmroic_idx;
+const PCT_METRICS = new Set(['净利润同比', 'ROE', 'ROIC']);
+const COMPUTED_YI_COLS = new Set(dataSource.computed_yi_cols);
+const COMPUTED_COL_NAMES = dataSource.computed_col_names;
+const FILTER_COLS = dataSource.filter_cols;
+const METRICS_DEFAULT_HIDDEN = new Set(dataSource.metrics_hidden);
+const COMPUTED_DEFAULT_HIDDEN = new Set(dataSource.computed_hidden);
+const FIXED_DEFAULT_HIDDEN = new Set(dataSource.fixed_hidden || []);
 
 if (dom.totalCount) {
   dom.totalCount.textContent = dataSource.row_count;
 }
 
-export function isMobile() {
+function isMobile() {
   return window.innerWidth < 768;
 }
 
-export function parseNum(value) {
+function parseNum(value) {
   if (value === null || value === undefined || value === '--') return null;
   let normalized = String(value).replace(/,/g, '');
   let multiplier = 1;
@@ -41,7 +41,7 @@ export function parseNum(value) {
   return Number.isNaN(parsed) ? null : parsed * multiplier;
 }
 
-export function parseStrictNum(value) {
+function parseStrictNum(value) {
   if (value === null || value === undefined || value === '--') return null;
   let normalized = String(value).replace(/,/g, '').trim();
   let multiplier = 1;
@@ -57,12 +57,12 @@ export function parseStrictNum(value) {
   return Number.isNaN(parsed) ? null : parsed * multiplier;
 }
 
-export function fmtYi(value) {
+function fmtYi(value) {
   const yi = value / 1e8;
   return Math.abs(yi) >= 1 ? yi.toFixed(1) : yi.toFixed(2);
 }
 
-export function getColUnit(col) {
+function getColUnit(col) {
   if (col.idx === 5) return '亿';
   if (col.idx === 8) return '亿股';
   if (COMPUTED_YI_COLS.has(col.idx)) return '亿';
@@ -77,7 +77,7 @@ export function getColUnit(col) {
   return '';
 }
 
-export function fmtCell(value, col) {
+function fmtCell(value, col) {
   if (value === '--' || value === null || value === undefined) return '--';
   if (col.idx === 6 || col.idx === 7) {
     const parsed = parseNum(String(value));
@@ -100,13 +100,40 @@ export function fmtCell(value, col) {
   return fmtYi(parsed);
 }
 
-export function isJinRong(row) {
+function isJinRong(row) {
   const industry = String(row[9]);
   if (industry === '保险' || industry === '其他金融' || industry === '银行') return true;
   if (industry === '综合企业' && String(row[2]).includes('中信股份')) return true;
   return false;
 }
 
-export function getStockType(row) {
+function getStockType(row) {
   return isJinRong(row) ? '金融股' : '非金融股';
 }
+
+window.DashboardShared = {
+  DATA,
+  COLS,
+  PERIODS,
+  METRICS,
+  ROIC_START,
+  ROIC_END,
+  TTMROE_IDX,
+  TTMROIC_IDX,
+  PCT_METRICS,
+  COMPUTED_YI_COLS,
+  COMPUTED_COL_NAMES,
+  FILTER_COLS,
+  METRICS_DEFAULT_HIDDEN,
+  COMPUTED_DEFAULT_HIDDEN,
+  FIXED_DEFAULT_HIDDEN,
+  isMobile,
+  parseNum,
+  parseStrictNum,
+  fmtYi,
+  getColUnit,
+  fmtCell,
+  isJinRong,
+  getStockType,
+};
+})();

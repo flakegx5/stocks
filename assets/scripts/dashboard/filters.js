@@ -1,8 +1,9 @@
-import { dom } from './dom.js';
-import { DATA, FILTER_COLS, getStockType, parseNum } from './shared.js';
-import { state } from './state.js';
+(() => {
+const dom = window.DashboardDOM;
+const { DATA, FILTER_COLS, getStockType, parseNum } = window.DashboardShared;
+const { state } = window.DashboardState;
 
-export function updateIndustryFilter() {
+function updateIndustryFilter() {
   dom.industryFilter.innerHTML = '<option value="">所有行业</option>';
   const industries = new Set();
   DATA.rows.forEach(row => {
@@ -24,7 +25,7 @@ export function updateIndustryFilter() {
   }
 }
 
-export function applyFilters() {
+function applyFilters() {
   let indices = DATA.rows.map((_, index) => index);
   if (state.filterStockType) {
     indices = indices.filter(index => getStockType(DATA.rows[index]) === state.filterStockType);
@@ -73,7 +74,7 @@ export function applyFilters() {
   state.displayIndices = indices;
 }
 
-export function openFilterPanel() {
+function openFilterPanel() {
   state.pendingFilters = { ...state.filters };
   dom.fpCol.innerHTML = '<option value="">选择指标…</option>';
   FILTER_COLS.forEach(filterCol => {
@@ -91,12 +92,12 @@ export function openFilterPanel() {
   dom.filterOverlay.classList.add('open');
 }
 
-export function closeFilterPanel() {
+function closeFilterPanel() {
   dom.filterPanel.classList.remove('open');
   dom.filterOverlay.classList.remove('open');
 }
 
-export function renderFilterChips() {
+function renderFilterChips() {
   const entries = Object.entries(state.pendingFilters);
   if (!entries.length) {
     dom.fpActive.innerHTML = '<span class="fp-empty">暂无筛选条件</span>';
@@ -118,13 +119,13 @@ export function renderFilterChips() {
   });
 }
 
-export function updateFilterToggleStyle() {
+function updateFilterToggleStyle() {
   const hasActiveFilters = Object.keys(state.filters).length > 0;
   dom.filterToggleBtn.classList.toggle('filter-active', hasActiveFilters);
   dom.filterToggleBtn.textContent = hasActiveFilters ? '筛选 ●' : '筛选 ▼';
 }
 
-export function initFilterPanel(render) {
+function initFilterPanel(render) {
   dom.fpCol.addEventListener('change', () => {
     const idx = dom.fpCol.value;
     const filterCol = FILTER_COLS.find(col => col.idx === parseInt(idx, 10));
@@ -172,3 +173,14 @@ export function initFilterPanel(render) {
   dom.filterClose.addEventListener('click', closeFilterPanel);
   dom.filterOverlay.addEventListener('click', closeFilterPanel);
 }
+
+window.DashboardFilters = {
+  updateIndustryFilter,
+  applyFilters,
+  openFilterPanel,
+  closeFilterPanel,
+  renderFilterChips,
+  updateFilterToggleStyle,
+  initFilterPanel,
+};
+})();

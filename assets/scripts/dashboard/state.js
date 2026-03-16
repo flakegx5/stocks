@@ -1,4 +1,5 @@
-import {
+(() => {
+const {
   COLS,
   PERIODS,
   METRICS,
@@ -7,16 +8,16 @@ import {
   COMPUTED_DEFAULT_HIDDEN,
   FIXED_DEFAULT_HIDDEN,
   isMobile,
-} from './shared.js';
+} = window.DashboardShared;
 
-export const DEFAULT_SORT_COL = 39;
-export const DEFAULT_SORT_DIR = 'asc';
-export const MOBILE_COMPUTED_VISIBLE = new Set(['低估排名', '成长排名', '质量排名', '股东回报排名', '综合排名']);
-export const FIXED_TOGGLEABLE_NAMES = COLS
+const DEFAULT_SORT_COL = 39;
+const DEFAULT_SORT_DIR = 'asc';
+const MOBILE_COMPUTED_VISIBLE = new Set(['低估排名', '成长排名', '质量排名', '股东回报排名', '综合排名']);
+const FIXED_TOGGLEABLE_NAMES = COLS
   .filter(col => col.group === '基本信息' && !col.locked)
   .map(col => col.name);
 
-export const state = {
+const state = {
   sortCol: DEFAULT_SORT_COL,
   sortDir: DEFAULT_SORT_DIR,
   visiblePeriods: new Set(PERIODS),
@@ -34,7 +35,7 @@ export const state = {
   rowHeight: 36,
 };
 
-export function applyResponsiveDefaults() {
+function applyResponsiveDefaults() {
   if (isMobile()) {
     state.visiblePeriods = new Set(PERIODS);
     state.visibleMetrics = new Set();
@@ -49,7 +50,7 @@ export function applyResponsiveDefaults() {
   state.visibleFixedCols = new Set(FIXED_TOGGLEABLE_NAMES.filter(name => !FIXED_DEFAULT_HIDDEN.has(name)));
 }
 
-export function resetViewState() {
+function resetViewState() {
   state.sortCol = DEFAULT_SORT_COL;
   state.sortDir = DEFAULT_SORT_DIR;
   state.searchText = '';
@@ -60,7 +61,7 @@ export function resetViewState() {
   applyResponsiveDefaults();
 }
 
-export function hydrateStateFromURL() {
+function hydrateStateFromURL() {
   const params = new URLSearchParams(window.location.search);
   if (params.has('sortCol')) state.sortCol = parseInt(params.get('sortCol'), 10);
   if (params.has('sortDir')) state.sortDir = params.get('sortDir');
@@ -77,3 +78,15 @@ export function hydrateStateFromURL() {
 }
 
 applyResponsiveDefaults();
+
+window.DashboardState = {
+  DEFAULT_SORT_COL,
+  DEFAULT_SORT_DIR,
+  MOBILE_COMPUTED_VISIBLE,
+  FIXED_TOGGLEABLE_NAMES,
+  state,
+  applyResponsiveDefaults,
+  resetViewState,
+  hydrateStateFromURL,
+};
+})();

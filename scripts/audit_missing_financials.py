@@ -314,6 +314,8 @@ def main() -> int:
         )
 
     if args.write_json:
+        output_path = Path(args.write_json)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         output = {
             "non_financial_total": len(rows),
             "latest_effective_period_gaps": latest_records,
@@ -324,7 +326,7 @@ def main() -> int:
             "queue_strategies": QUEUE_STRATEGIES,
             "zero_fill_allowed_metrics": sorted(ZERO_FILL_ALLOWED_METRICS),
         }
-        Path(args.write_json).write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+        output_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"\njson written: {args.write_json}")
 
     return 0

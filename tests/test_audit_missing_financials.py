@@ -1,5 +1,9 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import mock
 
+from scripts import audit_missing_financials
 from scripts.audit_missing_financials import build_gap_strategy, build_record, build_second_pass_queue
 
 
@@ -61,6 +65,16 @@ class AuditMissingFinancialsTests(unittest.TestCase):
         self.assertEqual(queue[0]["queue_type"], "only_cash")
         self.assertEqual(queue[0]["gap_strategy"]["audit_priority"], 1)
         self.assertEqual(queue[1]["queue_type"], "only_short_and_long_debt")
+
+    def test_main_creates_parent_directory_for_write_json(self):
+        row = self.make_base_row("1001.HK", "甲")
+        with TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "nested" / "missing_financial_audit.json"
+            with mock.patch.object(audit_missing_financials, "load_rows", return_value=[row]):
+                with mock.patch("sys.argv", ["audit_missing_financials.py", "--write-json", str(output_path)]):
+                    exit_code = audit_missing_financials.main()
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(output_path.exists())
 
 
 if __name__ == "__main__":

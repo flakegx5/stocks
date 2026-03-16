@@ -23,6 +23,8 @@ const {
 const { applyResponsiveDefaults, hydrateStateFromURL, resetViewState, state } = window.DashboardState;
 const { updateURLState } = window.DashboardURL;
 let mobileTouchY = null;
+let mobileTouchInTable = false;
+const MOBILE_SCROLL_RELEASE_THRESHOLD = 18;
 
 function render(resetScroll = true) {
   if (resetScroll) resetVirtualScroll();
@@ -73,8 +75,13 @@ function syncMobileTableScrollMode(forceUnlock = false) {
 
 function routeTouchToTable(deltaY) {
   if (!dom.tableWrap) return;
+  const maxScrollTop = Math.max(0, dom.tableWrap.scrollHeight - dom.tableWrap.clientHeight);
   const nextScrollTop = dom.tableWrap.scrollTop - deltaY;
-  dom.tableWrap.scrollTop = Math.max(0, nextScrollTop);
+  dom.tableWrap.scrollTop = Math.min(maxScrollTop, Math.max(0, nextScrollTop));
+}
+
+function routeTouchToPage(deltaY) {
+  window.scrollBy(0, -deltaY);
 }
 
 function initMobileTableScrollMode() {
@@ -84,13 +91,14 @@ function initMobileTableScrollMode() {
   window.addEventListener('scroll', requestSync, { passive: true });
   window.addEventListener('resize', () => syncMobileTableScrollMode(true), { passive: true });
 
-  dom.tableWrap.addEventListener('touchstart', event => {
+  document.addEventListener('touchstart', event => {
     if (window.innerWidth >= 768) return;
     mobileTouchY = event.touches[0]?.clientY ?? null;
+    mobileTouchInTable = dom.tableWrap.contains(event.target);
     syncMobileTableScrollMode(false);
   }, { passive: true });
 
-  dom.tableWrap.addEventListener('touchmove', event => {
+  document.addEventListener('touchmove', event => {
     if (window.innerWidth >= 768 || mobileTouchY === null) return;
     const currentY = event.touches[0]?.clientY;
     if (typeof currentY !== 'number') return;
@@ -98,17 +106,30 @@ function initMobileTableScrollMode() {
     mobileTouchY = currentY;
 
     const isActive = dom.tableWrap.classList.contains('table-scroll-active');
+    if (!mobileTouchInTable && !isActive) return;
+
     if (!isActive) {
       if (deltaY < 0 && shouldLockTableScroll()) {
         dom.tableWrap.classList.add('table-scroll-active');
         event.preventDefault();
         routeTouchToTable(deltaY);
+      } else if (mobileTouchInTable) {
+        event.preventDefault();
+        routeTouchToPage(deltaY);
       }
       return;
     }
 
-    if (deltaY > 0 && dom.tableWrap.scrollTop <= 0) {
+    const maxScrollTop = Math.max(0, dom.tableWrap.scrollHeight - dom.tableWrap.clientHeight);
+    if (deltaY > 0 && dom.tableWrap.scrollTop <= MOBILE_SCROLL_RELEASE_THRESHOLD) {
+      dom.tableWrap.scrollTop = 0;
       dom.tableWrap.classList.remove('table-scroll-active');
+      event.preventDefault();
+      routeTouchToPage(deltaY);
+      return;
+    }
+    if (deltaY < 0 && dom.tableWrap.scrollTop >= maxScrollTop) {
+      event.preventDefault();
       return;
     }
 
@@ -116,8 +137,9 @@ function initMobileTableScrollMode() {
     routeTouchToTable(deltaY);
   }, { passive: false });
 
-  dom.tableWrap.addEventListener('touchend', () => {
+  document.addEventListener('touchend', () => {
     mobileTouchY = null;
+    mobileTouchInTable = false;
     syncMobileTableScrollMode(false);
   }, { passive: true });
 

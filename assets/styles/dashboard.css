@@ -507,14 +507,11 @@ tbody td:nth-child(2) {
   /* Table wrapper */
   .table-wrap {
     height: calc(100vh - 62px);
-    overflow: hidden;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     touch-action: pan-x pan-y;
     padding: 8px 8px 16px;
-  }
-  .table-wrap.table-scroll-active {
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   /* Table */

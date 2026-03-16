@@ -6,10 +6,10 @@
 
 统一父目录：
 
-- `/Users/liuhuan10/Projects/stocks/main` -> `main`
-- `/Users/liuhuan10/Projects/stocks/data` -> `codex/data-pipeline`
-- `/Users/liuhuan10/Projects/stocks/indicators` -> `codex/indicators`
-- `/Users/liuhuan10/Projects/stocks/frontend` -> `codex/frontend`
+- `<worktree-root>/main` -> `main`
+- `<worktree-root>/data` -> `codex/data-pipeline`
+- `<worktree-root>/indicators` -> `codex/indicators`
+- `<worktree-root>/frontend` -> `codex/frontend`
 
 约定：
 
@@ -25,7 +25,7 @@
 进入对应目录工作，不要在同一个目录里反复切换分支。
 
 ```bash
-cd /Users/liuhuan10/Projects/stocks/data
+cd <worktree-root>/data
 git status
 ```
 
@@ -75,9 +75,9 @@ git push -u origin <current-branch>
 如需重建，可在 `main` 目录执行：
 
 ```bash
-git worktree add /Users/liuhuan10/Projects/stocks/data -b codex/data-pipeline main
-git worktree add /Users/liuhuan10/Projects/stocks/indicators -b codex/indicators main
-git worktree add /Users/liuhuan10/Projects/stocks/frontend -b codex/frontend main
+git worktree add <worktree-root>/data -b codex/data-pipeline main
+git worktree add <worktree-root>/indicators -b codex/indicators main
+git worktree add <worktree-root>/frontend -b codex/frontend main
 ```
 
 查看当前 worktree：

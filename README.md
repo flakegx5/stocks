@@ -10,7 +10,7 @@
 
 ## 并行开发约定
 
-本项目当前采用 `git worktree` 并行开发，统一父目录为 `/Users/liuhuan10/Projects/stocks/`。
+本项目当前采用 `git worktree` 并行开发。建议在一个统一父目录下维护多个 worktree，例如：
 
 - `main`：主分支集成目录
 - `data`：抓取与数据更新

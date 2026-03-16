@@ -6,10 +6,10 @@ This note is for the next agent taking over the repository after the worktree sp
 
 The repo now uses four sibling worktrees under one parent directory:
 
-- `/Users/liuhuan10/Projects/stocks/main` -> `main`
-- `/Users/liuhuan10/Projects/stocks/data` -> `codex/data-pipeline`
-- `/Users/liuhuan10/Projects/stocks/indicators` -> `codex/indicators`
-- `/Users/liuhuan10/Projects/stocks/frontend` -> `codex/frontend`
+- `<worktree-root>/main` -> `main`
+- `<worktree-root>/data` -> `codex/data-pipeline`
+- `<worktree-root>/indicators` -> `codex/indicators`
+- `<worktree-root>/frontend` -> `codex/frontend`
 
 `main` is the integration worktree. Feature work should happen in the other three directories unless the task is explicitly about merge, release, or shared integration.
 
@@ -18,13 +18,13 @@ The repo now uses four sibling worktrees under one parent directory:
 Choose the worktree by task type:
 
 - data ingestion, scraping, session/login flow, update automation, raw JSON refresh:
-  `/Users/liuhuan10/Projects/stocks/data`
+  `<worktree-root>/data`
 - derived metrics, ranking rules, build pipeline, output schema, backend-side tests:
-  `/Users/liuhuan10/Projects/stocks/indicators`
+  `<worktree-root>/indicators`
 - HTML, CSS, JS UI, layout, filters, sorting UX, rendering performance:
-  `/Users/liuhuan10/Projects/stocks/frontend`
+  `<worktree-root>/frontend`
 - final merge validation, branch sync, docs that affect all lanes:
-  `/Users/liuhuan10/Projects/stocks/main`
+  `<worktree-root>/main`
 
 If a task spans multiple lanes, prefer this order:
 

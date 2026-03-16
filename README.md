@@ -8,6 +8,19 @@
 
 ---
 
+## 并行开发约定
+
+本项目当前采用 `git worktree` 并行开发，统一父目录为 `/Users/liuhuan10/Projects/stocks/`。
+
+- `main`：主分支集成目录
+- `data`：抓取与数据更新
+- `indicators`：指标计算与构建逻辑
+- `frontend`：前端页面与交互
+
+详细操作说明见 `WORKTREE_GUIDE.md`。
+
+---
+
 ## 文件说明
 
 | 文件 | 说明 |

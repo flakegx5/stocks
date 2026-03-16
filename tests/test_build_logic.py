@@ -66,6 +66,24 @@ class BuildLogicTests(unittest.TestCase):
         self.assertEqual(rankings[0][5], "1")
         self.assertEqual(rankings[1][5], "2")
 
+    def test_projected_dividend_below_zero_is_clamped_to_zero(self):
+        row = {
+            "股票代码": "1888.HK",
+            "股票简称": "分红测试",
+            "港股@所属恒生行业(二级)": "工业工程",
+            "港股@总市值[20260309]": 1000000000,
+            "港股@归属于母公司所有者的净利润[20250930]": 10000000,
+            "港股@归属于母公司所有者的净利润[20241231]": 100000000,
+            "港股@归属于母公司所有者的净利润[20240930]": 120000000,
+            "港股@归属于母公司所有者的净利润[20231231]": 90000000,
+            "港股@归属于母公司所有者的净利润[20230930]": 10000000,
+            "港股@年度分红总额[20241231]": 50000000,
+            "港股@投入资本回报率[20250930]": 10,
+        }
+        phase1 = compute_phase1(row, MARKET_KEYS)
+        self.assertEqual(phase1["vals"][17], "0")
+        self.assertEqual(phase1["vals"][18], "0")
+
 
 if __name__ == "__main__":
     unittest.main()

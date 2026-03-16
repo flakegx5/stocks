@@ -205,6 +205,14 @@ BORROWING_CONTEXT_TERMS = [
     "interest-bearing",
 ]
 
+BORROWING_FLOW_TERMS = [
+    "proceeds from",
+    "repayments of",
+    "repayment of",
+    "net cash from financing activities",
+    "net cash used in financing activities",
+]
+
 ZERO_BORROWING_RULES = [
     {
         "metrics": ("短期借款", "长期借款"),
@@ -601,6 +609,8 @@ def is_false_positive_current_liability_hit(metric: str, alias: str, text: str) 
 
 def should_skip_metric_hit(metric: str, alias: str, text: str) -> bool:
     if metric in {"短期借款", "长期借款"} and has_negated_borrowings_context(text):
+        return True
+    if metric in {"短期借款", "长期借款"} and any(term in normalize_ws(text).lower() for term in BORROWING_FLOW_TERMS):
         return True
     return is_false_positive_current_liability_hit(metric, alias, text)
 
@@ -1179,6 +1189,55 @@ def build_supplement_candidates_for_docs(target: dict, docs: list[dict]) -> dict
     return best
 
 
+def analyze_doc_diagnostics(text: str) -> dict[str, bool]:
+    normalized = normalize_ws(text).lower()
+    return {
+        "has_bonds": bool(re.search(r"\bbonds?\b", normalized)),
+        "has_debentures": bool(re.search(r"\bdebentures?\b", normalized)),
+        "has_notes": bool(re.search(r"\bnotes payable\b|\bsenior notes?\b", normalized)),
+        "has_current_portion": "current portion" in normalized,
+        "has_non_current_portion": "non-current portion" in normalized,
+        "has_non_current_liabilities": "non-current liabilities" in normalized,
+        "has_interest_bearing_borrowings": "interest-bearing borrowings" in normalized,
+        "has_bank_and_other_borrowings": "bank and other borrowings" in normalized,
+    }
+
+
+def classify_probe_failure(target: dict, docs: list[dict], supplement_candidates: dict) -> dict:
+    if supplement_candidates:
+        return {"reason": "resolved", "detail": "supplement_candidates_found"}
+    if not docs:
+        return {"reason": "no_documents", "detail": "no_ranked_documents_in_search_window"}
+
+    core_missing = set(target["core_missing"])
+    has_metric_signal = any(
+        doc["metric_snippets"].get(metric) or doc["metric_amounts"].get(metric) or doc.get("zero_borrowing_candidates", {}).get(metric)
+        for doc in docs
+        for metric in core_missing
+    )
+    diagnostics = [doc.get("diagnostics", {}) for doc in docs]
+
+    if target["queue_type"] == "only_long_debt":
+        if any(diag.get("has_bonds") or diag.get("has_debentures") or diag.get("has_notes") for diag in diagnostics):
+            return {"reason": "ambiguous_debt_instrument", "detail": "debt_described_as_bonds_or_notes_without_safe_mapping"}
+        if any(diag.get("has_interest_bearing_borrowings") or diag.get("has_bank_and_other_borrowings") for diag in diagnostics):
+            has_current_only_structure = any(
+                diag.get("has_current_portion") and not diag.get("has_non_current_portion")
+                for diag in diagnostics
+            )
+            has_long_debt_structure = any(diag.get("has_non_current_portion") for diag in diagnostics)
+            if has_current_only_structure and not has_long_debt_structure:
+                return {"reason": "current_only_borrowings", "detail": "borrowing_signals_present_without_non_current_structure"}
+
+    if target["queue_type"] == "only_short_and_long_debt":
+        if any(diag.get("has_bonds") or diag.get("has_debentures") or diag.get("has_notes") for diag in diagnostics):
+            return {"reason": "ambiguous_debt_instrument", "detail": "debt_described_as_bonds_or_notes_without_safe_mapping"}
+
+    if has_metric_signal:
+        return {"reason": "signal_found_but_rejected", "detail": "metric_signal_found_but_no_safe_candidate"}
+    return {"reason": "no_metric_signal", "detail": "documents_found_but_target_metric_not_detected"}
+
+
 def find_metric_snippets(text: str, metrics: Iterable[str], radius: int = 80) -> dict[str, list[str]]:
     snippets: dict[str, list[str]] = {}
     for metric in metrics:
@@ -1309,12 +1368,14 @@ def main() -> int:
                     "metric_amounts": amounts,
                     "cash_rebuild": cash_rebuild,
                     "zero_borrowing_candidates": zero_borrowing_candidates,
+                    "diagnostics": analyze_doc_diagnostics(text),
                 }
             )
 
         supplement_candidates = build_supplement_candidates_for_docs(target, doc_reports) if doc_reports else {}
+        failure_analysis = classify_probe_failure(target, doc_reports, supplement_candidates)
         queue_type = target["queue_type"]
-        summary["by_type"].setdefault(queue_type, {"targets": 0, "doc_hit": 0, "candidate_hit": 0})
+        summary["by_type"].setdefault(queue_type, {"targets": 0, "doc_hit": 0, "candidate_hit": 0, "failure_reasons": {}})
         summary["by_type"][queue_type]["targets"] += 1
         if doc_reports:
             summary["doc_hit"] += 1
@@ -1322,6 +1383,9 @@ def main() -> int:
         if supplement_candidates:
             summary["candidate_hit"] += 1
             summary["by_type"][queue_type]["candidate_hit"] += 1
+        if not supplement_candidates:
+            reasons = summary["by_type"][queue_type]["failure_reasons"]
+            reasons[failure_analysis["reason"]] = reasons.get(failure_analysis["reason"], 0) + 1
 
         report.append(
             {
@@ -1334,6 +1398,7 @@ def main() -> int:
                 "candidate_count": len(results),
                 "documents": doc_reports,
                 "supplement_candidates": supplement_candidates,
+                "failure_analysis": failure_analysis,
             }
         )
 

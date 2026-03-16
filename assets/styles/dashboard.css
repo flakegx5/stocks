@@ -453,7 +453,7 @@ tbody td:nth-child(2) {
    Mobile (≤767px)
    ============================================================ */
 @media (max-width: 767px) {
-  /* Allow page scroll first, then activate table inner scroll near the top */
+  /* Mobile switches from page scroll to table scroll once the table head reaches the header */
   html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: auto; }
 
   /* Header */
@@ -506,9 +506,9 @@ tbody td:nth-child(2) {
 
   /* Table wrapper */
   .table-wrap {
-    height: calc(100vh - 150px);
+    height: calc(100vh - 62px);
     overflow: hidden;
-    overscroll-behavior-y: auto;
+    overscroll-behavior-y: contain;
     touch-action: pan-x pan-y;
     padding: 8px 8px 16px;
   }

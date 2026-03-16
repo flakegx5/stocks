@@ -31,6 +31,7 @@ function render(resetScroll = true) {
   buildBody();
   updateSummary();
   updateURLState();
+  updateMobileTableScrollMode();
 }
 
 function onSortClick(colIdx) {
@@ -52,6 +53,33 @@ function onSortClick(colIdx) {
 function closeRules() {
   dom.rulesModal.classList.remove('open');
   dom.rulesOverlay.classList.remove('open');
+}
+
+function updateMobileTableScrollMode() {
+  if (!dom.tableWrap || !dom.controls) return;
+  if (window.innerWidth >= 768) {
+    dom.tableWrap.classList.remove('table-scroll-active');
+    return;
+  }
+  const controlsBottom = dom.controls.getBoundingClientRect().bottom;
+  const tableTop = dom.tableWrap.getBoundingClientRect().top;
+  const shouldActivate = tableTop <= controlsBottom + 8;
+  dom.tableWrap.classList.toggle('table-scroll-active', shouldActivate);
+}
+
+function initMobileTableScrollMode() {
+  let ticking = false;
+  const requestSync = () => {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(() => {
+      ticking = false;
+      updateMobileTableScrollMode();
+    });
+  };
+  window.addEventListener('scroll', requestSync, { passive: true });
+  window.addEventListener('resize', requestSync, { passive: true });
+  requestSync();
 }
 
 function syncQueueButtons() {
@@ -124,6 +152,7 @@ function init() {
   initFilterPanel(render);
   initVirtualScroll(buildBody);
   initEvents();
+  initMobileTableScrollMode();
   render();
 }
 

@@ -1,5 +1,6 @@
 (() => {
 window.DashboardDOM = {
+  controls: document.querySelector('.controls'),
   totalCount: document.getElementById('sTotalCount'),
   rowCount: document.getElementById('sRowCount'),
   heroUpdateTime: document.getElementById('heroUpdateTime'),

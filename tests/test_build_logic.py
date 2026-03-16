@@ -84,6 +84,34 @@ class BuildLogicTests(unittest.TestCase):
         self.assertEqual(phase1["vals"][17], "0")
         self.assertEqual(phase1["vals"][18], "0")
 
+    def test_financial_ranking_uses_raw_iwencai_pe(self):
+        row_a = {
+            "股票代码": "0001.HK",
+            "股票简称": "金融甲",
+            "港股@所属恒生行业(二级)": "银行",
+            "港股@总市值[20260309]": 1000000000,
+            "港股@市盈率(pe,ttm)[20260306]": 8,
+            "港股@归属于母公司所有者的净利润[20251231]": 100000000,
+            "港股@净资产收益率roe[20251231]": 10,
+            "港股@年度分红总额[20251231]": 10000000,
+        }
+        row_b = {
+            "股票代码": "0002.HK",
+            "股票简称": "金融乙",
+            "港股@所属恒生行业(二级)": "银行",
+            "港股@总市值[20260309]": 200000000,
+            "港股@市盈率(pe,ttm)[20260306]": 12,
+            "港股@归属于母公司所有者的净利润[20251231]": 100000000,
+            "港股@净资产收益率roe[20251231]": 8,
+            "港股@年度分红总额[20251231]": 10000000,
+        }
+        phase1_list = [compute_phase1(row_a, MARKET_KEYS), compute_phase1(row_b, MARKET_KEYS)]
+        rankings = compute_rankings(phase1_list)
+        self.assertEqual(phase1_list[0]["pe_ttm"], 8)
+        self.assertEqual(phase1_list[1]["pe_ttm"], 12)
+        self.assertEqual(rankings[0][0], "1")
+        self.assertEqual(rankings[1][0], "2")
+
 
 if __name__ == "__main__":
     unittest.main()

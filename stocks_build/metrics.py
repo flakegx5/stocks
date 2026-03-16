@@ -210,11 +210,14 @@ def compute_phase1(obj, market_keys):
 
     actual_dividend_2025 = gf(annual_dividend_metric, "2025年报")
     if has_annual:
-        expected_dividend = None if (actual_dividend_2025 is None or actual_dividend_2025 < 0) else actual_dividend_2025
+        if actual_dividend_2025 is None:
+            expected_dividend = None
+        else:
+            expected_dividend = max(actual_dividend_2025, 0)
     else:
         dividend_2024 = gf(annual_dividend_metric, "2024年报")
         projected = None if dividend_2024 is None or ttm_yoy is None else dividend_2024 * (1 + ttm_yoy / 100)
-        expected_dividend = None if (projected is not None and projected < 0) else projected
+        expected_dividend = None if projected is None else max(projected, 0)
 
     buyback_raw = neg_only(ttm_yi(buyback_metric))
     buyback_abs = (-buyback_raw) if buyback_raw is not None else 0
@@ -282,4 +285,3 @@ def compute_phase1(obj, market_keys):
         "shareholder_yield": shareholder_yield,
         "return_ratio": return_ratio,
     }
-

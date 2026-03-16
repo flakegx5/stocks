@@ -225,18 +225,9 @@ def compute_phase1(obj, market_keys):
     return_ratio = None if ttm_profit is None or ttm_profit == 0 else expected_return / ttm_profit * 100
 
     try:
-        market_cap_numeric = float(obj.get(market_keys["mktcap"]) or 0) or None
+        pe_ttm = float(obj.get(market_keys["pe"]) or 0) or None
     except Exception:
-        market_cap_numeric = None
-
-    if market_cap_numeric is not None and ttm_profit is not None and ttm_profit > 0:
-        pe_ttm = market_cap_numeric / ttm_profit
-        obj[market_keys["pe"]] = pe_ttm
-    else:
-        try:
-            pe_ttm = float(obj.get(market_keys["pe"]) or 0) or None
-        except Exception:
-            pe_ttm = None
+        pe_ttm = None
 
     net_assets = None
     for _, period_label in PERIOD_DATES:
@@ -246,9 +237,6 @@ def compute_phase1(obj, market_keys):
                 break
         if net_assets is not None:
             break
-
-    if market_cap_numeric is not None and net_assets is not None and net_assets > 0:
-        obj[market_keys["pb"]] = market_cap_numeric / net_assets
 
     return {
         "vals": [

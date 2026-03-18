@@ -144,6 +144,7 @@ def build_data_bundle(all_cols, rows):
         "fixed_hidden": sorted(FIXED_HIDE_DEFAULT),
         "row_count": len(rows),
         "computed_col_names": list(COMPUTED_COL_DEFS),
+        "computed_col_map": {name: 10 + index for index, name in enumerate(COMPUTED_COL_DEFS)},
         "computed_yi_cols": [10 + index for index, name in enumerate(COMPUTED_COL_DEFS) if name in COMPUTED_YI_NAMES],
         "update_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "filter_cols": [

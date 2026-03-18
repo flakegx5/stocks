@@ -354,7 +354,7 @@ def do_scrape(debug=False):
 
         time.sleep(3)
 
-        if _looks_logged_out(pw_page):
+        if not all_rows and _looks_logged_out(pw_page):
             print("❌ 当前页面看起来处于未登录状态，session 可能已失效。请先运行：python3 scrape_iwencai_xhr.py --login")
             browser.close()
             return False

@@ -207,6 +207,40 @@ body::before {
 .sb-stat strong { font-size: 13px; color: var(--text-main); font-weight: 700; white-space: nowrap; }
 .sb-meta { margin-left: auto; font-size: 11px; color: var(--text-muted); flex-shrink: 0; padding-left: 16px; }
 
+/* Loading skeleton */
+.table-skeleton {
+  padding: 0 2px;
+}
+.table-skeleton .sk-header {
+  display: flex; gap: 8px; padding: 14px 12px;
+  border-bottom: 1px solid rgba(226,232,240,0.7);
+}
+.table-skeleton .sk-rows {
+  display: flex; flex-direction: column;
+}
+.table-skeleton .sk-row {
+  display: flex; gap: 8px; padding: 11px 12px;
+  border-bottom: 1px solid rgba(232,236,242,0.5);
+}
+.table-skeleton .sk-cell {
+  height: 14px; width: 64px; border-radius: 6px;
+  background: linear-gradient(90deg, #e8ecf2 25%, #f3f6f9 50%, #e8ecf2 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+}
+.table-skeleton .sk-header .sk-cell {
+  height: 16px; border-radius: 4px;
+  background: linear-gradient(90deg, #dde2ea 25%, #edf0f5 50%, #dde2ea 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+}
+.table-skeleton .sk-cell.sk-name { width: 88px; }
+.table-skeleton .sk-cell.sk-wide { width: 96px; }
+@keyframes sk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* Table wrapper */
 .table-wrap {
   overflow: auto; height: calc(100vh - 156px); overscroll-behavior: none;

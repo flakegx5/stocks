@@ -482,6 +482,74 @@ tbody td:nth-child(2) {
 .cnone { color: #b91c1c; font-weight: 600; }
 
 /* ============================================================
+   Stock Detail Panel (mobile bottom-sheet)
+   ============================================================ */
+.sd-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 250;
+  opacity: 0; transition: opacity .25s ease; }
+.sd-overlay.open { display: block; opacity: 1; }
+.sd-modal {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0;
+  height: 92vh; background: #f4f6fa; color: #1e2d44;
+  border-radius: 16px 16px 0 0; z-index: 251;
+  flex-direction: column; overflow: hidden;
+  box-shadow: 0 -8px 40px rgba(0,0,0,.25);
+  transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,.32,1);
+}
+.sd-modal.open { display: flex; transform: translateY(0); }
+.sd-modal.closing { display: flex; transform: translateY(100%); }
+.sd-handle { width: 36px; height: 4px; background: #c0c8d4; border-radius: 2px; margin: 8px auto 0; flex-shrink: 0; }
+.sd-header { padding: 10px 16px 12px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; position: relative; }
+.sd-basic { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.sd-code { font-family: monospace; font-size: 12px; color: #728094; }
+.sd-name { font-size: 18px; font-weight: 700; color: #1a2332; }
+.sd-industry { font-size: 11px; color: #8a97aa; background: #edf0f5; padding: 2px 8px; border-radius: 10px; }
+.sd-price-row { display: flex; align-items: baseline; gap: 10px; margin-top: 6px; }
+.sd-price { font-size: 22px; font-weight: 800; color: #1e2d44; }
+.sd-change { font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+.sd-change.pos { color: #16624b; background: rgba(22,162,107,.12); }
+.sd-change.neg { color: #c42e10; background: rgba(196,46,16,.1); }
+.sd-mktcap { font-size: 12px; color: #728094; }
+.sd-close { position: absolute; top: 10px; right: 12px; background: none; border: none;
+  font-size: 20px; color: #9aa8b9; cursor: pointer; padding: 4px 8px; line-height: 1; }
+
+.sd-body { flex: 1; overflow-y: auto; padding: 12px 14px 32px; -webkit-overflow-scrolling: touch; }
+.sd-section { margin-bottom: 16px; }
+.sd-section-title { font-size: 13px; font-weight: 700; color: #1a2332; margin: 0 0 8px;
+  padding-left: 10px; border-left: 3px solid var(--accent); }
+
+/* Rank cards — 3-col grid */
+.sd-ranks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sd-rank { text-align: center; background: #fff; border: 1px solid #e8ecf2; border-radius: 10px; padding: 8px 4px; }
+.sd-rank-label { font-size: 10px; color: #728094; margin-bottom: 2px; }
+.sd-rank-value { font-size: 17px; font-weight: 800; color: var(--accent); }
+
+/* Metric cards — 2-col grid */
+.sd-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.sd-card { background: #fff; border: 1px solid #e8ecf2; border-radius: 10px; padding: 10px 12px; }
+.sd-card-label { font-size: 11px; color: #728094; margin-bottom: 2px; }
+.sd-card-value { font-size: 16px; font-weight: 700; color: #1e2d44; }
+.sd-card-value.neg { color: #c42e10; }
+.sd-card-value.pos { color: #16624b; }
+
+/* Period accordion */
+.sd-period-group { border: 1px solid #e8ecf2; border-radius: 10px; margin-bottom: 6px;
+  overflow: hidden; background: #fff; }
+.sd-period-group.sd-empty { opacity: 0.5; }
+.sd-period-hdr { padding: 10px 12px; font-size: 13px; font-weight: 600; color: #1a2332;
+  cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.sd-period-hdr::after { content: '▸'; font-size: 12px; color: #9aa8b9; transition: transform .2s; }
+.sd-period-group.open .sd-period-hdr::after { transform: rotate(90deg); }
+.sd-period-body { display: none; padding: 0 12px 10px; }
+.sd-period-group.open .sd-period-body { display: block; }
+.sd-period-row { display: flex; justify-content: space-between; padding: 5px 0;
+  border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+.sd-period-row:last-child { border-bottom: none; }
+.sd-period-label { color: #728094; }
+.sd-period-val { font-weight: 600; color: #1e2d44; font-variant-numeric: tabular-nums; }
+.sd-period-val.neg { color: #c42e10; }
+.sd-period-val.pos { color: #16624b; }
+
+/* ============================================================
    Mobile (≤767px)
    ============================================================ */
 @media (max-width: 767px) {
@@ -617,4 +685,7 @@ tbody td:nth-child(2) {
 
   /* Rules modal */
   .rules-modal { width: 96vw; max-height: 92vh; }
+
+  /* Stock name tappable affordance on mobile */
+  td[data-colidx="2"] { color: #1a5fb4; cursor: pointer; }
 }

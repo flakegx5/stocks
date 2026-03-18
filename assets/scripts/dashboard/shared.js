@@ -13,6 +13,7 @@ const TTMROIC_IDX = dataSource.ttmroic_idx;
 const PCT_METRICS = new Set(['净利润同比', 'ROE', 'ROIC']);
 const COMPUTED_YI_COLS = new Set(dataSource.computed_yi_cols);
 const COMPUTED_COL_NAMES = dataSource.computed_col_names;
+const COL_MAP = dataSource.computed_col_map || {};
 const FILTER_COLS = dataSource.filter_cols;
 const METRICS_DEFAULT_HIDDEN = new Set(dataSource.metrics_hidden);
 const COMPUTED_DEFAULT_HIDDEN = new Set(dataSource.computed_hidden);
@@ -123,6 +124,7 @@ window.DashboardShared = {
   PCT_METRICS,
   COMPUTED_YI_COLS,
   COMPUTED_COL_NAMES,
+  COL_MAP,
   FILTER_COLS,
   METRICS_DEFAULT_HIDDEN,
   COMPUTED_DEFAULT_HIDDEN,

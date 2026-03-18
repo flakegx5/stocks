@@ -2,21 +2,22 @@
 const dom = window.DashboardDOM;
 const {
   DATA, COLS, PERIODS, METRICS, COMPUTED_YI_COLS,
-  TTMROE_IDX, TTMROIC_IDX, PCT_METRICS,
+  TTMROE_IDX, TTMROIC_IDX, PCT_METRICS, COL_MAP,
   parseNum, fmtYi, isMobile, getColUnit, getStockType,
 } = window.DashboardShared;
 
 /* ── Computed metric groups for card layout ── */
+const C = COL_MAP; // shorthand
 const CARD_GROUPS = [
   {
     title: '排名',
     color: '#c41e3a',
     items: [
-      { label: '综合排名', idx: 39 },
-      { label: '低估', idx: 34 },
-      { label: '成长', idx: 35 },
-      { label: '质量', idx: 36 },
-      { label: '股东回报', idx: 37 },
+      { label: '综合排名', idx: C['综合排名'] },
+      { label: '低估', idx: C['低估排名'] },
+      { label: '成长', idx: C['成长排名'] },
+      { label: '质量', idx: C['质量排名'] },
+      { label: '股东回报', idx: C['股东回报排名'] },
     ],
   },
   {
@@ -26,7 +27,7 @@ const CARD_GROUPS = [
     items: [
       { label: 'PE(TTM)', idx: 6 },
       { label: 'PB', idx: 7 },
-      { label: '股东收益率', idx: 32, unit: '%', tip: 'TTMFCF ÷ (总市值+净现金)\n即自由现金流收益率，越高越低估' },
+      { label: '股东收益率', idx: C['股东收益率'], unit: '%', tip: 'TTMFCF ÷ (总市值+净现金)\n即自由现金流收益率，越高越低估' },
     ],
   },
   {
@@ -34,9 +35,9 @@ const CARD_GROUPS = [
     color: '#16a34a',
     layout: '3col',
     items: [
-      { label: 'TTM归母净利润', idx: 11, yi: true },
-      { label: 'TTMROE', idx: TTMROE_IDX, unit: '%' },
-      { label: 'TTMROIC', idx: TTMROIC_IDX, unit: '%' },
+      { label: 'TTM归母净利润', idx: C['TTM归母净利润'], yi: true },
+      { label: 'TTMROE', idx: C['TTMROE'], unit: '%' },
+      { label: 'TTMROIC', idx: C['TTMROIC'], unit: '%' },
     ],
   },
   {
@@ -49,11 +50,11 @@ const CARD_GROUPS = [
     title: '现金流',
     color: '#0891b2',
     items: [
-      { label: 'TTMFCF', idx: 31, yi: true },
-      { label: 'TTM经营现金流', idx: 21, yi: true },
-      { label: 'TTM投资现金流', idx: 22, yi: true },
-      { label: 'TTM资本支出', idx: 23, yi: true },
-      { label: 'TTM融资现金流', idx: 24, yi: true },
+      { label: 'TTMFCF', idx: C['TTMFCF'], yi: true },
+      { label: 'TTM经营现金流', idx: C['TTM经营现金流'], yi: true },
+      { label: 'TTM投资现金流', idx: C['TTM投资现金流'], yi: true },
+      { label: 'TTM资本支出', idx: C['TTM资本支出'], yi: true },
+      { label: 'TTM融资现金流', idx: C['TTM融资现金流'], yi: true },
     ],
   },
   {
@@ -61,19 +62,19 @@ const CARD_GROUPS = [
     color: '#2563eb',
     items: [
       { label: '总市值', idx: 5, yi: true },
-      { label: '净现金', idx: 29, yi: true },
-      { label: '有息负债', idx: 30, yi: true },
-      { label: '最新权益合计', idx: 18, yi: true },
+      { label: '净现金', idx: C['净现金'], yi: true },
+      { label: '有息负债', idx: C['有息负债'], yi: true },
+      { label: '最新权益合计', idx: C['最新权益合计'], yi: true },
     ],
   },
   {
     title: '分红回购',
     color: '#d97706',
     items: [
-      { label: '预期25年度分红', idx: 27, yi: true },
-      { label: '预期25股东回报', idx: 28, yi: true },
-      { label: '股东回报分配率', idx: 33, unit: '%' },
-      { label: 'TTM股份回购', idx: 25, yi: true },
+      { label: '预期25年度分红', idx: C['预期25年度分红'], yi: true },
+      { label: '预期25股东回报', idx: C['预期25股东回报'], yi: true },
+      { label: '股东回报分配率', idx: C['股东回报分配率'], unit: '%' },
+      { label: 'TTM股份回购', idx: C['TTM股份回购'], yi: true },
     ],
   },
 ];
@@ -160,8 +161,8 @@ function buildDetailHTML(row) {
     } else if (group.dynamic === 'growth') {
       // 增长能力: TTM净利同比 + 最近2个有数据报期的净利润同比
       const items = [];
-      // TTM净利同比 (computed col idx 12)
-      items.push({ label: 'TTM净利同比', raw: row[12], unit: '%' });
+      // TTM净利同比
+      items.push({ label: 'TTM净利同比', raw: row[C['TTM净利同比']], unit: '%' });
       // Find 2 most recent periods with data for 净利润同比 (entries ordered newest-first)
       const entries = PERIOD_MAP['净利润同比'] || [];
       let found = 0;

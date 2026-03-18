@@ -203,7 +203,7 @@ def compute_phase1(obj, market_keys):
         except Exception:
             market_cap = None
         if ttm_fcf is not None and market_cap is not None:
-            denominator = market_cap + net_cash
+            denominator = market_cap - net_cash
             shareholder_yield = (ttm_fcf / denominator * 100) if denominator != 0 else None
         else:
             shareholder_yield = None

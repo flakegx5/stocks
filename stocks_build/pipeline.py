@@ -2,7 +2,6 @@
 
 import json
 import os
-import re
 from datetime import datetime
 
 from .config import (
@@ -145,6 +144,7 @@ def build_data_bundle(all_cols, rows):
         "fixed_hidden": sorted(FIXED_HIDE_DEFAULT),
         "row_count": len(rows),
         "computed_col_names": list(COMPUTED_COL_DEFS),
+        "computed_col_map": {name: 10 + index for index, name in enumerate(COMPUTED_COL_DEFS)},
         "computed_yi_cols": [10 + index for index, name in enumerate(COMPUTED_COL_DEFS) if name in COMPUTED_YI_NAMES],
         "update_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "filter_cols": [
@@ -157,15 +157,7 @@ def build_data_bundle(all_cols, rows):
 def write_outputs(base_dir, bundle):
     with open(os.path.join(base_dir, "data.js"), "w", encoding="utf-8") as handle:
         handle.write("window.STOCK_DATA=" + json.dumps(bundle, ensure_ascii=False, separators=(",", ":")) + ";")
-    index_path = os.path.join(base_dir, "index.html")
-    if os.path.exists(index_path):
-        with open(index_path, "r", encoding="utf-8") as handle:
-            html = handle.read()
-        timestamp = int(datetime.now().timestamp())
-        html = re.sub(r'<script src="data\.js(?:\?t=\d+)?"></script>', f'<script src="data.js?t={timestamp}"></script>', html)
-        with open(index_path, "w", encoding="utf-8") as handle:
-            handle.write(html)
-        print(f"✅ index.html updated with cache-busting timestamp: ?t={timestamp}")
+    print(f"✅ data.js written (update_time={bundle.get('update_time', '?')})")
 
 
 def run_build(base_dir):

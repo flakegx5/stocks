@@ -44,6 +44,34 @@ git commit -m "your change"
 git push -u origin <current-branch>
 ```
 
+## data.js 规则（所有 agent 必读）
+
+`data.js` 是构建产物，**只由 main 分支负责 commit**。
+
+### feature 分支（data-pipeline / indicators / frontend）
+
+- 可以本地运行 `python3 build_html.py` 生成 `data.js` 做验证
+- **不要 commit `data.js`**，从 `git add` 中排除它：
+
+```bash
+git add -A
+git reset data.js        # 把 data.js 从暂存区移除
+git commit -m "your change"
+git push
+```
+
+### main 分支（每次 merge feature 分支后必做）
+
+```bash
+# merge 完成后，重建并提交 data.js
+python3 build_html.py
+git add data.js
+git commit -m "rebuild: 合并后重建 data.js"
+git push
+```
+
+> 每日 crontab（`scrape --build --push`）已自动覆盖数据更新场景，无需额外操作。
+
 首次推送时常用分支名：
 
 - `codex/data-pipeline`

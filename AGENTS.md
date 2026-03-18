@@ -8,9 +8,21 @@ git pull   # 先同步最新代码，再开始工作
 
 ## 完成工作后必做
 
+**feature 分支**（data-pipeline / indicators / frontend）：
+
 ```bash
 git add -A
+git reset data.js        # data.js 不 commit，仅本地验证用
 git commit -m "简要描述本次改动"
+git push
+```
+
+**main 分支**（merge feature 分支后必做）：
+
+```bash
+python3 build_html.py
+git add data.js
+git commit -m "rebuild: 合并后重建 data.js"
 git push
 ```
 

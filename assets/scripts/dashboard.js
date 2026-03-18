@@ -123,6 +123,9 @@ function init() {
   initFilterPanel(render);
   initVirtualScroll(buildBody);
   initEvents();
+  if (window.DashboardStockDetail) {
+    window.DashboardStockDetail.initStockDetail();
+  }
   render();
 }
 

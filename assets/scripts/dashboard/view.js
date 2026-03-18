@@ -225,13 +225,58 @@ function buildBody() {
 
   dom.tableBody.innerHTML = html;
   syncMeasuredRowHeight();
+  revealTable();
+}
+
+let tableRevealed = false;
+function revealTable() {
+  if (tableRevealed) return;
+  tableRevealed = true;
+  const skeleton = document.getElementById('tableSkeleton');
+  const table = document.getElementById('mainTable');
+  if (skeleton) skeleton.remove();
+  if (table) table.style.display = '';
 }
 
 function updateSummary() {
   dom.rowCount.textContent = state.displayIndices.length;
 }
 
+let xlsxLoaded = typeof XLSX !== 'undefined';
+const XLSX_URL = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+
+function loadXLSX() {
+  if (xlsxLoaded) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = XLSX_URL;
+    s.onload = () => { xlsxLoaded = true; resolve(); };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
 function exportExcel() {
+  const btn = document.getElementById('exportBtn');
+  const origText = btn.textContent;
+  if (!xlsxLoaded) {
+    btn.textContent = '加载中…';
+    btn.disabled = true;
+    loadXLSX().then(() => {
+      btn.textContent = origText;
+      btn.disabled = false;
+      doExport();
+    }).catch(() => {
+      btn.textContent = origText;
+      btn.disabled = false;
+      alert('导出组件加载失败，请重试');
+    });
+    return;
+  }
+  doExport();
+}
+
+function doExport() {
   const colDefs = getVisibleColDefs();
   const headerRow = colDefs.map(col => {
     const pipeIndex = col.fullName.indexOf('|');

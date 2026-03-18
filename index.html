@@ -233,13 +233,33 @@
 </div>
 
 <div class="table-wrap" id="tableWrap">
-  <table id="mainTable">
+  <!-- Loading skeleton: shown immediately, removed after first render -->
+  <div class="table-skeleton" id="tableSkeleton">
+    <div class="sk-header">
+      <div class="sk-cell sk-name"></div>
+      <div class="sk-cell sk-wide"></div>
+      <div class="sk-cell"></div>
+      <div class="sk-cell"></div>
+      <div class="sk-cell"></div>
+      <div class="sk-cell sk-wide"></div>
+    </div>
+    <div class="sk-rows">
+      <div class="sk-row"><div class="sk-cell sk-name"></div><div class="sk-cell sk-wide"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell sk-wide"></div></div>
+      <div class="sk-row"><div class="sk-cell sk-name"></div><div class="sk-cell sk-wide"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell sk-wide"></div></div>
+      <div class="sk-row"><div class="sk-cell sk-name"></div><div class="sk-cell sk-wide"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell sk-wide"></div></div>
+      <div class="sk-row"><div class="sk-cell sk-name"></div><div class="sk-cell sk-wide"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell sk-wide"></div></div>
+      <div class="sk-row"><div class="sk-cell sk-name"></div><div class="sk-cell sk-wide"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell sk-wide"></div></div>
+      <div class="sk-row"><div class="sk-cell sk-name"></div><div class="sk-cell sk-wide"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell sk-wide"></div></div>
+      <div class="sk-row"><div class="sk-cell sk-name"></div><div class="sk-cell sk-wide"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell sk-wide"></div></div>
+      <div class="sk-row"><div class="sk-cell sk-name"></div><div class="sk-cell sk-wide"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell"></div><div class="sk-cell sk-wide"></div></div>
+    </div>
+  </div>
+  <table id="mainTable" style="display:none">
     <thead id="tableHead"></thead>
     <tbody id="tableBody"></tbody>
   </table>
 </div>
 
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="data.js?t=1773824491"></script>
 <script src="assets/scripts/dashboard/dom.js"></script>
 <script src="assets/scripts/dashboard/shared.js"></script>

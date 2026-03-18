@@ -232,6 +232,26 @@
   </div>
 </div>
 
+<!-- Stock detail panel (mobile) -->
+<div class="sd-overlay" id="sdOverlay"></div>
+<div class="sd-modal" id="sdModal">
+  <div class="sd-handle"></div>
+  <div class="sd-header" id="sdHeader">
+    <div class="sd-basic">
+      <span class="sd-code" id="sdCode"></span>
+      <span class="sd-name" id="sdName"></span>
+      <span class="sd-industry" id="sdIndustry"></span>
+    </div>
+    <div class="sd-price-row">
+      <span class="sd-price" id="sdPrice"></span>
+      <span class="sd-change" id="sdChange"></span>
+      <span class="sd-mktcap" id="sdMktcap"></span>
+    </div>
+    <button class="sd-close" id="sdClose">✕</button>
+  </div>
+  <div class="sd-body" id="sdBody"></div>
+</div>
+
 <div class="table-wrap" id="tableWrap">
   <!-- Loading skeleton: shown immediately, removed after first render -->
   <div class="table-skeleton" id="tableSkeleton">
@@ -261,13 +281,14 @@
 </div>
 
 <script src="data.js?t=1773826735"></script>
-<script src="assets/scripts/dashboard/dom.js"></script>
-<script src="assets/scripts/dashboard/shared.js"></script>
-<script src="assets/scripts/dashboard/state.js"></script>
-<script src="assets/scripts/dashboard/view.js"></script>
-<script src="assets/scripts/dashboard/filters.js"></script>
-<script src="assets/scripts/dashboard/column-picker.js"></script>
-<script src="assets/scripts/dashboard/url.js"></script>
-<script src="assets/scripts/dashboard.js"></script>
+<script src="assets/scripts/dashboard/dom.js?v=3"></script>
+<script src="assets/scripts/dashboard/shared.js?v=3"></script>
+<script src="assets/scripts/dashboard/state.js?v=3"></script>
+<script src="assets/scripts/dashboard/view.js?v=3"></script>
+<script src="assets/scripts/dashboard/filters.js?v=3"></script>
+<script src="assets/scripts/dashboard/column-picker.js?v=3"></script>
+<script src="assets/scripts/dashboard/stock-detail.js?v=3"></script>
+<script src="assets/scripts/dashboard/url.js?v=3"></script>
+<script src="assets/scripts/dashboard.js?v=3"></script>
 </body>
 </html>

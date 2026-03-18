@@ -33,15 +33,5 @@ window.DashboardDOM = {
   rulesModal: document.getElementById('rulesModal'),
   rulesOverlay: document.getElementById('rulesOverlay'),
   rulesClose: document.getElementById('rulesClose'),
-  sdOverlay: document.getElementById('sdOverlay'),
-  sdModal: document.getElementById('sdModal'),
-  sdCode: document.getElementById('sdCode'),
-  sdName: document.getElementById('sdName'),
-  sdIndustry: document.getElementById('sdIndustry'),
-  sdPrice: document.getElementById('sdPrice'),
-  sdChange: document.getElementById('sdChange'),
-  sdMktcap: document.getElementById('sdMktcap'),
-  sdClose: document.getElementById('sdClose'),
-  sdBody: document.getElementById('sdBody'),
 };
 })();

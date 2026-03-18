@@ -516,20 +516,37 @@ tbody td:nth-child(2) {
 .sd-section { margin-bottom: 16px; }
 .sd-section-title { font-size: 13px; font-weight: 700; color: #1a2332; margin: 0 0 8px;
   padding-left: 10px; border-left: 3px solid var(--accent); }
+.sd-section-sub { font-size: 11px; font-weight: 500; color: #8a97aa; }
 
-/* Rank cards — 3-col grid */
+/* Rank cards — 5-col single row */
 .sd-ranks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.sd-rank { text-align: center; background: #fff; border: 1px solid #e8ecf2; border-radius: 10px; padding: 8px 4px; }
-.sd-rank-label { font-size: 10px; color: #728094; margin-bottom: 2px; }
-.sd-rank-value { font-size: 17px; font-weight: 800; color: var(--accent); }
+.sd-ranks-5 { grid-template-columns: repeat(5, 1fr); }
+.sd-rank { text-align: center; background: #fff; border: 1px solid #e8ecf2; border-radius: 10px; padding: 8px 2px; }
+.sd-rank-label { font-size: 10px; color: #728094; margin-bottom: 2px; white-space: nowrap; }
+.sd-rank-value { font-size: 16px; font-weight: 800; color: var(--accent); }
 
-/* Metric cards — 2-col grid */
+/* Metric cards — 2-col grid (default) */
 .sd-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.sd-card { background: #fff; border: 1px solid #e8ecf2; border-radius: 10px; padding: 10px 12px; }
-.sd-card-label { font-size: 11px; color: #728094; margin-bottom: 2px; }
+.sd-cards.sd-cards-3 { grid-template-columns: repeat(3, 1fr); }
+.sd-card { background: #fff; border: 1px solid #e8ecf2; border-radius: 10px; padding: 10px 12px; position: relative; }
+.sd-card-label { font-size: 11px; color: #728094; margin-bottom: 2px; display: flex; align-items: center; gap: 4px; }
 .sd-card-value { font-size: 16px; font-weight: 700; color: #1e2d44; }
+.sd-cards-3 .sd-card-value { font-size: 14px; }
 .sd-card-value.neg { color: #c42e10; }
 .sd-card-value.pos { color: #16624b; }
+
+/* Tip button & popover */
+.sd-tip-btn { display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; border-radius: 50%; border: 1px solid #c0c8d4;
+  background: #f1f5f9; color: #728094; font-size: 10px; font-weight: 700;
+  cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0; }
+.sd-tip-pop { position: absolute; left: 8px; right: 8px; bottom: calc(100% + 6px);
+  background: #1e2d44; color: #fff; font-size: 11px; line-height: 1.5;
+  padding: 8px 10px; border-radius: 8px; z-index: 10;
+  white-space: pre-line; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+.sd-tip-pop::after { content: ''; position: absolute; bottom: -5px; left: 20px;
+  border-left: 5px solid transparent; border-right: 5px solid transparent;
+  border-top: 5px solid #1e2d44; }
 
 /* Period accordion */
 .sd-period-group { border: 1px solid #e8ecf2; border-radius: 10px; margin-bottom: 6px;

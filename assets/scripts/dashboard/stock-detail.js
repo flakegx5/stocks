@@ -3,7 +3,7 @@ const dom = window.DashboardDOM;
 const {
   DATA, COLS, PERIODS, METRICS, COMPUTED_YI_COLS,
   TTMROE_IDX, TTMROIC_IDX, PCT_METRICS,
-  parseNum, fmtYi, isMobile, getColUnit,
+  parseNum, fmtYi, isMobile, getColUnit, getStockType,
 } = window.DashboardShared;
 
 /* ── Computed metric groups for card layout ── */
@@ -13,7 +13,6 @@ const CARD_GROUPS = [
     color: '#c41e3a',
     items: [
       { label: '综合排名', idx: 39 },
-      { label: '综合分数', idx: 38 },
       { label: '低估', idx: 34 },
       { label: '成长', idx: 35 },
       { label: '质量', idx: 36 },
@@ -23,27 +22,34 @@ const CARD_GROUPS = [
   {
     title: '估值',
     color: '#c41e3a',
+    layout: '3col',
     items: [
       { label: 'PE(TTM)', idx: 6 },
       { label: 'PB', idx: 7 },
-      { label: '股东收益率', idx: 32, unit: '%' },
-      { label: 'TTMFCF', idx: 31, yi: true },
+      { label: '股东收益率', idx: 32, unit: '%', tip: 'TTMFCF ÷ (总市值+净现金)\n即自由现金流收益率，越高越低估' },
     ],
   },
   {
-    title: '盈利与回报率',
+    title: '盈利能力',
     color: '#16a34a',
+    layout: '3col',
     items: [
       { label: 'TTM归母净利润', idx: 11, yi: true },
-      { label: 'TTM净利同比', idx: 12, unit: '%' },
       { label: 'TTMROE', idx: TTMROE_IDX, unit: '%' },
       { label: 'TTMROIC', idx: TTMROIC_IDX, unit: '%' },
     ],
   },
   {
+    title: '增长能力',
+    color: '#059669',
+    layout: '3col',
+    dynamic: 'growth',
+  },
+  {
     title: '现金流',
     color: '#0891b2',
     items: [
+      { label: 'TTMFCF', idx: 31, yi: true },
       { label: 'TTM经营现金流', idx: 21, yi: true },
       { label: 'TTM投资现金流', idx: 22, yi: true },
       { label: 'TTM资本支出', idx: 23, yi: true },
@@ -136,7 +142,12 @@ function buildDetailHTML(row) {
     html += `<h3 class="sd-section-title" style="border-left-color:${group.color}">${group.title}</h3>`;
 
     if (group.title === '排名') {
-      html += '<div class="sd-ranks">';
+      const stockType = getStockType(row);
+      html = html.replace(
+        `>${group.title}</h3>`,
+        `>${group.title} <span class="sd-section-sub">（${stockType}序列）</span></h3>`
+      );
+      html += '<div class="sd-ranks sd-ranks-5">';
       group.items.forEach(item => {
         const raw = row[item.idx];
         const display = fmtVal(raw, item);
@@ -146,14 +157,44 @@ function buildDetailHTML(row) {
         </div>`;
       });
       html += '</div>';
+    } else if (group.dynamic === 'growth') {
+      // 增长能力: TTM净利同比 + 最近2个有数据报期的净利润同比
+      const items = [];
+      // TTM净利同比 (computed col idx 12)
+      items.push({ label: 'TTM净利同比', raw: row[12], unit: '%' });
+      // Find 2 most recent periods with data for 净利润同比 (entries ordered newest-first)
+      const entries = PERIOD_MAP['净利润同比'] || [];
+      let found = 0;
+      for (let i = 0; i < entries.length && found < 2; i++) {
+        const e = entries[i];
+        const v = row[e.idx];
+        if (v !== null && v !== undefined && v !== '--') {
+          items.push({ label: e.period + '同比', raw: v, unit: '%' });
+          found++;
+        }
+      }
+      html += '<div class="sd-cards sd-cards-3">';
+      items.forEach(item => {
+        const display = fmtVal(item.raw, item);
+        const cls = valClass(item.raw);
+        html += `<div class="sd-card">
+          <div class="sd-card-label">${item.label}</div>
+          <div class="sd-card-value${cls}">${display}</div>
+        </div>`;
+      });
+      html += '</div>';
     } else {
-      html += '<div class="sd-cards">';
+      const gridClass = group.layout === '3col' ? 'sd-cards sd-cards-3' : 'sd-cards';
+      html += `<div class="${gridClass}">`;
       group.items.forEach(item => {
         const raw = row[item.idx];
         const display = fmtVal(raw, item);
         const cls = valClass(raw);
+        const tipBtn = item.tip
+          ? ` <button class="sd-tip-btn" data-tip="${item.tip.replace(/"/g, '&quot;')}">?</button>`
+          : '';
         html += `<div class="sd-card">
-          <div class="sd-card-label">${item.label}</div>
+          <div class="sd-card-label">${item.label}${tipBtn}</div>
           <div class="sd-card-value${cls}">${display}</div>
         </div>`;
       });
@@ -227,6 +268,24 @@ function openDetail(dataIdx) {
   dom.sdBody.querySelectorAll('.sd-period-hdr').forEach(hdr => {
     hdr.addEventListener('click', () => {
       hdr.parentElement.classList.toggle('open');
+    });
+  });
+
+  // Tip popover click
+  dom.sdBody.querySelectorAll('.sd-tip-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Remove any existing popover
+      const old = dom.sdBody.querySelector('.sd-tip-pop');
+      if (old) old.remove();
+      // Create popover
+      const pop = document.createElement('div');
+      pop.className = 'sd-tip-pop';
+      pop.textContent = btn.dataset.tip;
+      btn.closest('.sd-card').appendChild(pop);
+      // Auto dismiss
+      const dismiss = () => { pop.remove(); document.removeEventListener('click', dismiss); };
+      setTimeout(() => document.addEventListener('click', dismiss), 10);
     });
   });
 

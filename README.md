@@ -25,11 +25,13 @@
 
 | 文件 | 说明 |
 |------|------|
-| `build_html.py` | 核心构建脚本，读取 JSON 数据，**只输出 `data.js`**（同时刷新 `index.html` 的 cache-bust 时间戳） |
+| `build_html.py` | 构建脚本，读取 JSON 数据，输出 `data.js`（原始数据，computed 列为 null） |
 | `scrape_iwencai_xhr.py` | 数据抓取脚本（问财网，Playwright 无头浏览器） |
 | `hk_stocks_data_new.json` | 原始数据（iwencai 抓取结果，~760 只股票） |
-| `index.html` | 静态模板（~29KB，CSS + JS 逻辑） |
-| `data.js` | 构建产出数据（~1.6MB，表格数据 + 计算常量） |
+| `assets/scripts/compute.js` | 浏览器端计算引擎（TTM/排名/衍生指标，~11ms 完成全部计算） |
+| `validate.js` | Node.js 验证工具（计算规则迭代时的影响分析与快照对比） |
+| `index.html` | 静态前端（加载顺序：data.js → compute.js → dashboard 脚本） |
+| `data.js` | 构建产物（~1.6MB，原始数据 + 元数据，computed 列为 null） |
 
 ## 快速开始
 
@@ -91,7 +93,7 @@ python3 scripts/hkex_second_pass.py \
 | TTM经营/投资/融资现金流 | 最近四季度各类现金流 |
 | 净现金 | 总现金 - 短期借款 - 长期借款（金融股为空） |
 | TTMFCF | max(OCF+资本支出, OCF+投资现金流) |
-| 股东收益率 | TTMFCF ÷ (总市值 + 净现金) × 100% |
+| 股东收益率 | TTMFCF ÷ (总市值 - 净现金) × 100%（分母为企业价值） |
 | 股东回报分配率 | 预期25股东回报 ÷ TTM归母净利润 × 100% |
 | 低估排序分 | 金融股按PE升序，非金融股按股东收益率降序 |
 | 成长排序分 | 按TTM净利同比降序（金融/非金融各自排名，None不参与） |

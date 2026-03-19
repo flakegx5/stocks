@@ -15,7 +15,7 @@
 
 - `main` 只用于集成、验收、最终合并
 - `data` 负责原始数据抓取、更新链路、调度和数据质量修复
-- `indicators` 负责浏览器端计算引擎 `compute.js`、Python 配置（列定义等）
+- `indicators` 负责浏览器端计算引擎 `compute.js`、验证工具 `validate.js`、Python 配置（列定义等）
 - `frontend` 负责页面结构、样式、交互和前端加载性能
 
 ### 文件归属（各分支只改自己的文件，互不冲突）
@@ -23,9 +23,9 @@
 | 文件 | 归属分支 |
 |------|---------|
 | `scrape_iwencai_xhr.py`, `hk_stocks_data_new.json` | data-pipeline |
-| `assets/scripts/compute.js`, `stocks_build/*.py` | indicators |
+| `assets/scripts/compute.js`, `validate.js`, `stocks_build/*.py` | indicators |
 | `index.html`, `assets/styles/`, `assets/scripts/dashboard/*.js` | frontend |
-| `data.js` | **只由 main 生成**（构建产物，computed 列为 null） |
+| `data.js` | 各分支均可提交（构建产物，computed 列为 null） |
 
 每个 worktree 都是完整仓库，不是手工复制的项目副本。
 
@@ -42,7 +42,7 @@ git status
 
 ```bash
 git fetch origin
-git rebase origin/main
+git merge origin/main
 ```
 
 完成后正常提交：
@@ -50,42 +50,10 @@ git rebase origin/main
 ```bash
 git add -A
 git commit -m "your change"
-git push -u origin <current-branch>
-```
-
-## data.js 规则（所有 agent 必读）
-
-`data.js` 是构建产物，**只由 main 分支负责 commit**。
-
-### feature 分支（data-pipeline / indicators / frontend）
-
-- 可以本地运行 `python3 build_html.py` 生成 `data.js` 做验证
-- **不要 commit `data.js`**，从 `git add` 中排除它：
-
-```bash
-git add -A
-git reset data.js        # 把 data.js 从暂存区移除
-git commit -m "your change"
 git push
 ```
 
-### main 分支（每次 merge feature 分支后必做）
-
-```bash
-# merge 完成后，重建并提交 data.js
-python3 build_html.py
-git add data.js
-git commit -m "rebuild: 合并后重建 data.js"
-git push
-```
-
-> 每日 crontab（`scrape --build --push`）已自动覆盖数据更新场景，无需额外操作。
-
-首次推送时常用分支名：
-
-- `codex/data-pipeline`
-- `codex/indicators`
-- `codex/frontend`
+> data.js 可以正常提交。重构后 data.js 只含原始数据（computed 列为 null），各分支文件归属互不重叠，不存在合并冲突风险。
 
 ## 合并建议
 
@@ -98,11 +66,11 @@ git push
 1. 在对应 worktree 内完成单条任务
 2. 本地验证通过
 3. 合并到 `main`
-4. 其他 worktree 执行 `git fetch origin && git rebase origin/main`
+4. 其他 worktree 执行 `git fetch origin && git merge origin/main`
 
 ## 注意事项
 
-- 不要手工复制整个项目做“隔离”
+- 不要手工复制整个项目做"隔离"
 - 不要在 `main` 目录里直接做长期功能开发
 - 不要让多个 agent 共享同一个 worktree 目录同时修改
 - 若移动了 worktree 目录，需要执行 `git worktree repair`
@@ -112,9 +80,9 @@ git push
 如需重建，可在 `main` 目录执行：
 
 ```bash
-git worktree add <worktree-root>/data -b codex/data-pipeline main
-git worktree add <worktree-root>/indicators -b codex/indicators main
-git worktree add <worktree-root>/frontend -b codex/frontend main
+git worktree add <worktree-root>/data codex/data-pipeline
+git worktree add <worktree-root>/indicators codex/indicators
+git worktree add <worktree-root>/frontend codex/frontend
 ```
 
 查看当前 worktree：
@@ -122,5 +90,3 @@ git worktree add <worktree-root>/frontend -b codex/frontend main
 ```bash
 git worktree list
 ```
-
-后续 agent 接手说明见 `AGENT_HANDOFF_WORKTREES_20260316.md`。

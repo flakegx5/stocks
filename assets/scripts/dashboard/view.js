@@ -56,7 +56,9 @@ function getVisibleColDefs() {
 }
 
 function resetVirtualScroll() {
-  if (dom.tableWrap) {
+  if (isMobile()) {
+    window.scrollTo(0, 0);
+  } else if (dom.tableWrap) {
     dom.tableWrap.scrollTop = 0;
   }
   state.renderStartIndex = 0;
@@ -73,6 +75,29 @@ function syncMeasuredRowHeight() {
 }
 
 function initVirtualScroll(onViewportChange) {
+  if (isMobile()) {
+    window.addEventListener('scroll', () => {
+      const theadEl = dom.tableHead;
+      const tbodyEl = dom.tableBody;
+      if (!theadEl || !tbodyEl) return;
+      const theadBottom = theadEl.getBoundingClientRect().bottom;
+      const tbodyTop = tbodyEl.getBoundingClientRect().top;
+      const scrollTop = Math.max(0, theadBottom - tbodyTop);
+      const viewportHeight = window.innerHeight - theadBottom;
+      if (viewportHeight <= 0) return;
+      const overscan = 20;
+      const newStart = Math.max(0, Math.floor(scrollTop / state.rowHeight) - overscan);
+      const newEnd = Math.min(
+        state.displayIndices.length,
+        Math.ceil((scrollTop + viewportHeight) / state.rowHeight) + overscan
+      );
+      if (newStart === state.renderStartIndex && newEnd === state.renderEndIndex) return;
+      state.renderStartIndex = newStart;
+      state.renderEndIndex = newEnd;
+      onViewportChange();
+    }, { passive: true });
+    return;
+  }
   dom.tableWrap?.addEventListener('scroll', () => {
     const scrollTop = dom.tableWrap.scrollTop;
     const viewportHeight = dom.tableWrap.clientHeight;
@@ -156,8 +181,6 @@ function buildHeader(onSortClick) {
           topRow.appendChild(groupTh);
         }
         th.innerHTML = `<span class="th-metric">${metric.replace('排名', '')}</span>`;
-        th.style.top = '22px';
-        th.style.height = '24px';
         bottomRow.appendChild(th);
       } else {
         th.rowSpan = 2;
@@ -226,6 +249,10 @@ function buildBody() {
   dom.tableBody.innerHTML = html;
   syncMeasuredRowHeight();
   revealTable();
+  if (isMobile() && dom.mainTable && dom.tableWrap) {
+    dom.tableWrap.classList.toggle('needs-hscroll',
+      dom.mainTable.scrollWidth > dom.tableWrap.clientWidth + 2);
+  }
 }
 
 let tableRevealed = false;

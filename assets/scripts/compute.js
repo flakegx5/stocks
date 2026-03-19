@@ -171,15 +171,20 @@ function computePhase1(row) {
     ttmFcf = null;
     shareholderYield = null;
   } else {
-    netCash = (gv('总现金') || 0) - (gv('短期借款') || 0) - (gv('长期借款') || 0);
-    interestDebt = (gv('短期借款') || 0) + (gv('长期借款') || 0);
+    const cash = gv('总现金'), stDebt = gv('短期借款'), ltDebt = gv('长期借款');
+    if (cash === null && stDebt === null && ltDebt === null) {
+      netCash = null;
+      interestDebt = null;
+    } else {
+      netCash = (cash || 0) - (stDebt || 0) - (ltDebt || 0);
+      interestDebt = (stDebt || 0) + (ltDebt || 0);
+    }
     const fcf1 = (ttmOcf !== null && ttmCapex !== null) ? ttmOcf + ttmCapex : null;
     const fcf2 = (ttmOcf !== null && ttmIcf !== null) ? ttmOcf + ttmIcf : null;
-    if (fcf1 !== null && fcf2 !== null) ttmFcf = Math.max(fcf1, fcf2);
-    else ttmFcf = fcf1 !== null ? fcf1 : fcf2;
+    ttmFcf = fcf1 !== null ? fcf1 : fcf2;
 
     const mktCap = parseN(row[5]);
-    if (ttmFcf !== null && mktCap !== null) {
+    if (ttmFcf !== null && mktCap !== null && netCash !== null) {
       const denom = mktCap - netCash;
       shareholderYield = denom !== 0 ? (ttmFcf / denom * 100) : null;
     } else {
@@ -202,8 +207,9 @@ function computePhase1(row) {
   const buybackRaw = negOnly(ttmYi('股份回购'));
   const buybackAbs = buybackRaw !== null ? -buybackRaw : 0;
   const expectedReturn = (expectedDiv || 0) + (buybackAbs / 2);
-  const returnRatio = (ttmProfit === null || ttmProfit === 0)
+  let returnRatio = (ttmProfit === null || ttmProfit === 0)
     ? null : expectedReturn / ttmProfit * 100;
+  if (returnRatio !== null && returnRatio < 0) returnRatio = 0;
 
   // ── PE for ranking ──
   const peTtm = parseN(row[6]);

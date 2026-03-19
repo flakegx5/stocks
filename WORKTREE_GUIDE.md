@@ -25,7 +25,7 @@
 | `scrape_iwencai_xhr.py`, `hk_stocks_data_new.json` | data-pipeline |
 | `assets/scripts/compute.js`, `validate.js`, `stocks_build/*.py` | indicators |
 | `index.html`, `assets/styles/`, `assets/scripts/dashboard/*.js` | frontend |
-| `data.js` | 各分支均可提交（构建产物，computed 列为 null） |
+| `data.js` | 构建产物（由 build_html.py 生成） |
 
 每个 worktree 都是完整仓库，不是手工复制的项目副本。
 
@@ -52,8 +52,6 @@ git add -A
 git commit -m "your change"
 git push
 ```
-
-> data.js 可以正常提交。重构后 data.js 只含原始数据（computed 列为 null），各分支文件归属互不重叠，不存在合并冲突风险。
 
 ## 合并建议
 

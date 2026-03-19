@@ -8,16 +8,15 @@ git pull   # 先同步最新代码，再开始工作
 
 ## 完成工作后必做
 
-**feature 分支**（data-pipeline / indicators / frontend）：
-
 ```bash
 git add -A
-git reset data.js        # data.js 不 commit，仅本地验证用
 git commit -m "简要描述本次改动"
 git push
 ```
 
-**main 分支**（merge feature 分支后必做）：
+> data.js 可以正常提交。重构后 data.js 只含原始数据（computed 列为 null），各分支文件归属互不重叠，不存在合并冲突风险。
+
+**main 分支合并后**（如 data-pipeline 有新数据需要重建）：
 
 ```bash
 python3 build_html.py
@@ -49,11 +48,12 @@ hk_stocks_data_new.json  →  build_html.py  →  data.js（只含原始数据 +
 | `scrape_iwencai_xhr.py` | data-pipeline | 数据抓取 |
 | `hk_stocks_data_new.json` | data-pipeline | 原始数据 |
 | `assets/scripts/compute.js` | **indicators** | **浏览器端计算引擎（TTM/排名/衍生指标）** |
+| `validate.js` | indicators | Node.js 验证工具（规则迭代影响分析） |
 | `stocks_build/*.py` | indicators | Python 配置（列定义、报期列表等，不含计算逻辑） |
 | `index.html` | frontend | 页面结构 |
 | `assets/styles/dashboard.css` | frontend | 样式 |
 | `assets/scripts/dashboard/*.js` | frontend | 前端渲染逻辑 |
-| `data.js` | **只由 main 生成** | 构建产物，computed 列为 null |
+| `data.js` | 各分支均可提交 | 构建产物（computed 列为 null），由 build_html.py 生成 |
 
 ### 核心文件
 
@@ -119,7 +119,7 @@ row[40+]（原始报期数据）
   → TTM归母净利润 / TTM净利同比 / TTMROE / TTMROIC / TTM现金流...
     → 净现金 = 总现金 - 短期借款 - 长期借款
     → TTMFCF = max(OCF+capex, OCF+ICF)
-    → 股东收益率 = TTMFCF / (总市值 + 净现金)
+    → 股东收益率 = TTMFCF / (总市值 - 净现金) × 100%
       → 低估排名（非金融股）→ 综合排名
 
 row[6]（PE）
@@ -171,13 +171,34 @@ N_PERIODS       = len(PERIOD_DATES)              # 当前 = 12
 - 如需新增/删除计算列，同步修改 `stocks_build/config.py` 的 `COMPUTED_COL_DEFS`
 - 本地验证：浏览器打开 index.html，F12 查看 console 确认 compute.js 无报错
 
----
+### 验证工具（validate.js）
 
-## 默认隐藏列（COMPUTED_HIDE_DEFAULT）
-```python
-{'TTM股份回购', 'TTM支付股息', '预期25年度分红',
- '最新总现金', '最新流动资产', '最新总负债', '最新短期借款', '最新长期借款'}
+用于 compute.js 规则迭代时的影响分析，在 Node.js 环境运行：
+
+```bash
+# 查看当前所有计算指标统计（非空数/占比/min/median/max）
+node validate.js
+
+# 改规则前：保存快照
+node validate.js --snapshot before.json
+
+# 改规则后：对比差异
+node validate.js --snapshot after.json --diff before.json
 ```
 
-## JS 亿单位列（COMPUTED_YI_COLS）
-索引：11, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
+对比报告包含：
+- 每个指标的非空数变化（旧 → 新，标记 ◀）
+- **计算指标变化明细**：分类统计（空→有值 / 有值→空 / 值变化）+ 逐股样本（最多5条）
+- **排名列传导变化**：仅汇总数量，不展示明细（低估/成长/质量/股东回报/综合分数/综合排名）
+
+---
+
+## 默认隐藏列（COMPUTED_HIDE_DEFAULT，共16列）
+```python
+{'最新总现金', '最新流动资产', '最新总负债', '最新短期借款', '最新长期借款', '最新权益合计',
+ 'TTM经营现金流', 'TTM投资现金流', 'TTM资本支出', 'TTM融资现金流',
+ 'TTM股份回购', 'TTM支付股息', '预期25年度分红', '预期25股东回报', '有息负债', '综合分数'}
+```
+
+## JS 亿单位列（COMPUTED_YI_NAMES，共18列）
+索引：11, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31

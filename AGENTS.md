@@ -14,9 +14,7 @@ git commit -m "简要描述本次改动"
 git push
 ```
 
-> data.js 可以正常提交。重构后 data.js 只含原始数据（computed 列为 null），各分支文件归属互不重叠，不存在合并冲突风险。
-
-**main 分支合并后**（如 data-pipeline 有新数据需要重建）：
+**main 分支合并后**（如有新数据需要重建 data.js）：
 
 ```bash
 python3 build_html.py
@@ -53,7 +51,7 @@ hk_stocks_data_new.json  →  build_html.py  →  data.js（只含原始数据 +
 | `index.html` | frontend | 页面结构 |
 | `assets/styles/dashboard.css` | frontend | 样式 |
 | `assets/scripts/dashboard/*.js` | frontend | 前端渲染逻辑 |
-| `data.js` | 各分支均可提交 | 构建产物（computed 列为 null），由 build_html.py 生成 |
+| `data.js` | 构建产物 | 由 build_html.py 生成，computed 列为 null |
 
 ### 核心文件
 

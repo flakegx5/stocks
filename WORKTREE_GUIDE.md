@@ -15,8 +15,17 @@
 
 - `main` 只用于集成、验收、最终合并
 - `data` 负责原始数据抓取、更新链路、调度和数据质量修复
-- `indicators` 负责指标计算、排序逻辑、构建管线和测试
+- `indicators` 负责浏览器端计算引擎 `compute.js`、Python 配置（列定义等）
 - `frontend` 负责页面结构、样式、交互和前端加载性能
+
+### 文件归属（各分支只改自己的文件，互不冲突）
+
+| 文件 | 归属分支 |
+|------|---------|
+| `scrape_iwencai_xhr.py`, `hk_stocks_data_new.json` | data-pipeline |
+| `assets/scripts/compute.js`, `stocks_build/*.py` | indicators |
+| `index.html`, `assets/styles/`, `assets/scripts/dashboard/*.js` | frontend |
+| `data.js` | **只由 main 生成**（构建产物，computed 列为 null） |
 
 每个 worktree 都是完整仓库，不是手工复制的项目副本。
 

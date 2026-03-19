@@ -100,14 +100,18 @@ python3 scripts/hkex_second_pass.py \
 
 补充说明：非金融股按统一规则计算排名；若缺少对应计算所需字段，则该维度排名或综合排名显示为空。
 
-## 架构
+## 架构（2026-03-19 重构后）
 
 ```
 scrape_iwencai_xhr.py   →   hk_stocks_data_new.json   →   build_html.py
-      (Playwright)              (原始数据 ~7MB)            ↓            ↓
-                                                       index.html   data.js
-                                                       (~29KB)     (~1.6MB)
+      (Playwright)              (原始数据 ~7MB)                  ↓
+                                                            data.js（原始数据 + 元数据）
+                                                                 ↓
+                                                          compute.js（浏览器运行时计算）
+                                                                 ↓
+                                                          dashboard JS（渲染）
 ```
 
-- `index.html` 通过 `<script src="data.js">` 加载数据，同时支持本地 `file://` 和 GitHub Pages
+- `data.js` 只含原始数据，computed 列为 null；`compute.js` 在浏览器端完成 TTM/排名计算（~11ms）
+- `index.html` 加载顺序：data.js → compute.js → dashboard 脚本
 - MKT 日期后缀字段（总市值、PE、PB、总股本）由 `build_html.py` 自动探测，重新抓取后无需手动修改

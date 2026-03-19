@@ -46,6 +46,7 @@ hk_stocks_data_new.json  →  build_html.py  →  data.js（只含原始数据 +
 | `scrape_iwencai_xhr.py` | data-pipeline | 数据抓取 |
 | `hk_stocks_data_new.json` | data-pipeline | 原始数据 |
 | `assets/scripts/compute.js` | **indicators** | **浏览器端计算引擎（TTM/排名/衍生指标）** |
+| `validate.js` | indicators | Node.js 验证工具（规则迭代影响分析） |
 | `stocks_build/*.py` | indicators | Python 配置（列定义、报期列表等，不含计算逻辑） |
 | `index.html` | frontend | 页面结构 |
 | `assets/styles/dashboard.css` | frontend | 样式 |

@@ -8,16 +8,15 @@ git pull   # 先同步最新代码，再开始工作
 
 ## 完成工作后必做
 
-**feature 分支**（data-pipeline / indicators / frontend）：
-
 ```bash
 git add -A
-git reset data.js        # data.js 不 commit，仅本地验证用
 git commit -m "简要描述本次改动"
 git push
 ```
 
-**main 分支**（merge feature 分支后必做）：
+> data.js 可以正常提交。重构后 data.js 只含原始数据（computed 列为 null），各分支文件归属互不重叠，不存在合并冲突风险。
+
+**main 分支合并后**（如 data-pipeline 有新数据需要重建）：
 
 ```bash
 python3 build_html.py
@@ -53,7 +52,7 @@ hk_stocks_data_new.json  →  build_html.py  →  data.js（只含原始数据 +
 | `index.html` | frontend | 页面结构 |
 | `assets/styles/dashboard.css` | frontend | 样式 |
 | `assets/scripts/dashboard/*.js` | frontend | 前端渲染逻辑 |
-| `data.js` | **只由 main 生成** | 构建产物，computed 列为 null |
+| `data.js` | 各分支均可提交 | 构建产物（computed 列为 null），由 build_html.py 生成 |
 
 ### 核心文件
 

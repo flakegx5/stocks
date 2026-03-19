@@ -474,7 +474,7 @@ if __name__ == '__main__':
             ts = datetime.now().strftime('%Y-%m-%d %H:%M')
             print(f"\n📤 推送至 GitHub ({ts})...")
             subprocess.run(['git', 'add',
-                            'hk_stocks_data_new.json', 'data.js', 'index.html'],
+                            'hk_stocks_data_new.json', 'data.js'],
                            cwd=BASE_DIR)
             ret = subprocess.run(
                 ['git', 'commit', '-m', f'数据更新: {ts}'],

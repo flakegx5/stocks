@@ -15,8 +15,7 @@ from .config import (
     PERIOD_DATES,
     PERIOD_METRICS,
 )
-from .metrics import build_market_keys, clean_code, compute_phase1, filter_source_rows, inject_market
-from .ranking import compute_rankings
+from .metrics import build_market_keys, clean_code, filter_source_rows, inject_market
 
 
 def load_json(path):
@@ -88,13 +87,10 @@ def build_all_columns(market_keys):
 
 
 def build_rows(source_rows, all_cols, market_keys):
-    phase1_list = [compute_phase1(obj, market_keys) for obj in source_rows]
-    ranking_list = compute_rankings(phase1_list)
+    """Build row data with raw values only; computed columns are null (filled by compute.js)."""
     rows = []
-    for row_index, obj in enumerate(source_rows):
+    for obj in source_rows:
         code = clean_code(obj.get("股票代码", obj.get("code", "")))
-        derived = phase1_list[row_index]["vals"] + ranking_list[row_index]
-        derived_map = dict(zip(COMPUTED_COL_DEFS, derived))
         row = []
         for col_index, col in enumerate(all_cols):
             if col_index == 0:
@@ -102,7 +98,7 @@ def build_rows(source_rows, all_cols, market_keys):
             elif col["header"] == "股票代码":
                 row.append(code)
             elif col["group"] == "计算指标":
-                row.append(derived_map.get(col["header"], "--"))
+                row.append(None)
             else:
                 row.append(get_val(obj, col["raw_key"]))
         rows.append(row)

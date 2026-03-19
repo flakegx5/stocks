@@ -374,13 +374,29 @@ tbody td:nth-child(2) {
   min-width: 110px; max-width: 110px; font-weight: 560; color: #1f2937;
   border-right: 1px solid rgba(203, 213, 225, 0.92); will-change: transform;
 }
-/* Standardize zebra stripes by using background: inherit on sticky cells */
+/* Opaque backgrounds for sticky cells — prevent bleed-through on horizontal scroll */
 #mainTable.table-has-code tbody td:nth-child(1),
 #mainTable.table-has-code tbody td:nth-child(2),
 tbody td:nth-child(1),
 tbody td:nth-child(2) {
-  background: inherit;
   box-shadow: 8px 0 16px rgba(244, 247, 250, 0.58);
+}
+tbody tr:nth-child(odd) td:nth-child(1),
+tbody tr:nth-child(odd) td:nth-child(2) { background: #ffffff; }
+tbody tr:nth-child(even) td:nth-child(1),
+tbody tr:nth-child(even) td:nth-child(2) { background: #f9fbfd; }
+tbody tr:hover td:nth-child(1),
+tbody tr:hover td:nth-child(2) { background: #fcf7f3 !important; }
+/* Cover border-radius gap at left edge of sticky columns */
+thead tr:first-child th:nth-child(1)::before,
+tbody td:nth-child(1)::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: -1px;
+  bottom: -1px;
+  width: 24px;
+  background: inherit;
 }
 
 /* Export button */
@@ -621,24 +637,24 @@ tbody td:nth-child(2) {
   .sb-count { padding-right: 0; border-right: none; flex-shrink: 0; }
   .sb-stat { padding: 0 11px; }
 
-  /* Table wrapper — sticky: sticks below page-header, native scroll takes over */
+  /* Table wrapper — normal page flow, no nested scroll container */
   .table-wrap {
-    position: sticky;
-    top: 54px;                          /* page-header height on mobile */
-    height: calc(100vh - 54px);
-    height: calc(100dvh - 54px);        /* dynamic viewport for mobile browser chrome */
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: auto;        /* allow scroll-chain back to page */
-    touch-action: pan-x pan-y;
-    padding: 0 8px 16px;              /* no top padding — table header sits flush */
-    background: #f1f5f9;               /* opaque: hides content scrolling behind */
+    position: static;
+    height: auto;
+    overflow: visible;
+    -webkit-overflow-scrolling: auto;
+    overscroll-behavior-y: auto;
+    touch-action: auto;
+    will-change: auto;
+    padding: 0 8px 16px;
+    background: transparent;
   }
+  .table-wrap::after { display: none; }
 
   /* Table — overflow:clip preserves border-radius clipping without creating scroll context */
   table { overflow: clip; border-radius: 14px; }
   /* Opaque header background so rows don't bleed through sticky headers */
-  thead th { height: 44px; font-size: 11px; padding: 0 6px; border-right: 1px solid rgba(221,227,236,0.72);
+  thead th { top: 54px; height: 44px; font-size: 11px; padding: 0 6px; border-right: 1px solid rgba(221,227,236,0.72);
     background: linear-gradient(180deg, #fdfeff, #f8fafc); }
   thead th.active-col { background: linear-gradient(180deg, #fcf7f3, #faf1ec); }
   thead th.rank-band { background: linear-gradient(180deg, #fafcfe, #f6f9fc); }
@@ -647,6 +663,7 @@ tbody td:nth-child(2) {
   thead th .th-unit { font-size: 8px; }
   thead th .th-rank-group { display: block; font-size: 8px; color: #94a3b8; font-weight: 500; margin-bottom: 0px; text-align: center; width: 100%; border-bottom: 1px solid rgba(0,0,0,0.04); margin-bottom: 2px; padding-bottom: 1px; }
   thead th.rank-band { height: 22px; font-size: 10px; }
+  thead tr:nth-child(2) th { top: 76px; height: 24px; }
   td { height: 36px; font-size: 11px; padding: 0 6px; }
 
   /* Mobile col layout: 代码隐藏 → 简称=nth-child(1) */
@@ -657,7 +674,7 @@ tbody td:nth-child(2) {
     font-family: inherit; font-weight: 560; color: #1a2332;
     border-right: 1px solid rgba(186,196,208,0.88); will-change: transform;
     white-space: normal; word-break: break-all; line-height: 1.25;
-    text-align: left !important; background: inherit;
+    text-align: left !important;
   }
   
   /* When code is visible, col 1 is code, col 2 is name */
@@ -674,10 +691,13 @@ tbody td:nth-child(2) {
   /* Ensure other columns are NOT sticky in mobile */  #mainTable:not(.table-has-code) thead tr:first-child th:nth-child(2),
   #mainTable:not(.table-has-code) tbody td:nth-child(2) { position: static; left: auto; min-width: auto; max-width: none; border-right: 1px solid #e6e9f0; }
   
-  tbody tr:nth-child(even) td:nth-child(1),
-  tbody tr:nth-child(even) td:nth-child(2),
-  tbody tr:nth-child(odd) td:nth-child(1),
-  tbody tr:nth-child(odd) td:nth-child(2) { background: inherit; }
+  /* Horizontal scroll for wide tables — trades sticky thead for h-scroll */
+  .table-wrap.needs-hscroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-wrap.needs-hscroll thead th { top: 0; }
+  .table-wrap.needs-hscroll thead tr:nth-child(2) th { top: 22px; }
 
   /* Column picker — bottom sheet */
   .col-picker {

@@ -198,34 +198,57 @@ if (diffPath) {
     console.log(`  ${label} ${String(oldS.nonNull).padStart(4)}  →  ${String(newS.nonNull).padStart(4)}   ${arrow.padStart(4)}${mark}`);
   }
 
+  // Ranking columns: derived from computed metrics, changes are expected cascade
+  // Report them separately so they don't clutter the core metrics diff
+  const RANKING_COLS = new Set(['低估排名', '成长排名', '质量排名', '股东回报排名', '综合分数', '综合排名']);
+
   // Per-stock value changes
   if (oldDetail) {
-    console.log(`\n── 逐股值变化明细 ──\n`);
-    let changeCount = 0;
+    console.log(`\n── 计算指标变化明细（排除排名列）──\n`);
+    let metricChangeCount = 0;
+    let rankingChangeCount = 0;
     for (const [name, idx] of Object.entries(CM)) {
       const oldVals = oldDetail[name];
       if (!oldVals) continue;
       const newVals = rows.map(r => r[idx]);
+      const isRanking = RANKING_COLS.has(name);
       const changes = [];
+      let nullToValue = 0, valueToNull = 0, valueToValue = 0;
       for (let i = 0; i < Math.min(oldVals.length, newVals.length); i++) {
         const ov = oldVals[i];
         const nv = newVals[i];
         if (String(ov) !== String(nv)) {
+          const wasNull = (ov === null || ov === undefined || ov === '--');
+          const isNull = (nv === null || nv === undefined || nv === '--');
+          if (wasNull && !isNull) nullToValue++;
+          else if (!wasNull && isNull) valueToNull++;
+          else valueToValue++;
           changes.push({ stock: `${rows[i][1]} ${rows[i][2]}`, old: ov, new: nv });
         }
       }
       if (changes.length > 0) {
-        changeCount += changes.length;
-        console.log(`  ${name}: ${changes.length} 条变化`);
-        // Show first 5 examples
-        for (const c of changes.slice(0, 5)) {
-          console.log(`    ${c.stock}: ${c.old} → ${c.new}`);
+        if (isRanking) {
+          rankingChangeCount += changes.length;
+        } else {
+          metricChangeCount += changes.length;
+          const parts = [];
+          if (nullToValue > 0) parts.push(`空→有值 ${nullToValue}`);
+          if (valueToNull > 0) parts.push(`有值→空 ${valueToNull}`);
+          if (valueToValue > 0) parts.push(`值变化 ${valueToValue}`);
+          console.log(`  ${name}: ${changes.length} 条变化  (${parts.join(', ')})`);
+          // Show first 5 examples
+          for (const c of changes.slice(0, 5)) {
+            console.log(`    ${c.stock}: ${c.old} → ${c.new}`);
+          }
+          if (changes.length > 5) console.log(`    ... 及其他 ${changes.length - 5} 条`);
         }
-        if (changes.length > 5) console.log(`    ... 及其他 ${changes.length - 5} 条`);
       }
     }
-    if (changeCount === 0) console.log('  无逐股变化');
-    else console.log(`\n总变化: ${changeCount} 个单元格`);
+    if (metricChangeCount === 0) console.log('  计算指标无变化');
+    else console.log(`\n计算指标总变化: ${metricChangeCount} 个单元格`);
+    if (rankingChangeCount > 0) {
+      console.log(`排名列传导变化: ${rankingChangeCount} 个单元格（明细已省略）`);
+    }
   }
 
   console.log();

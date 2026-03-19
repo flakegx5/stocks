@@ -40,7 +40,6 @@
 ```bash
 pip3 install playwright
 python3 -m playwright install chromium
-python3 -m pip install --user pypdf requests
 ```
 
 ### 抓取数据并更新
@@ -59,30 +58,6 @@ python3 scrape_iwencai_xhr.py --build --push
 python3 build_html.py
 ```
 
-### 二次补抓（HKEXnews）
-
-当前二次补抓逻辑只生成候选补充数据与统计结果，不直接回写 `hk_stocks_data_new.json`。
-
-```bash
-# 先生成缺口审计与二次补抓队列
-python3 scripts/audit_missing_financials.py \
-  --write-json debug_responses/missing_financial_audit.json
-
-# 再跑 HKEXnews 二次补抓，输出候选补充结果
-python3 scripts/hkex_second_pass.py \
-  --docs-per-stock 1 \
-  --queue-types only_cash only_long_debt only_short_and_long_debt only_capex \
-  --out debug_responses/hkex_second_pass/final_candidates_main_gaps.json
-```
-
-输出说明：
-
-- `debug_responses/missing_financial_audit.json`：缺口审计结果与二次补抓队列
-- `debug_responses/hkex_second_pass/*.json`：HKEXnews 二次补抓候选结果
-- 二次补抓结果目前只单独存储，不与主抓取数据自动合并
-
----
-
 ## 计算指标说明
 
 | 指标 | 说明 |
@@ -91,10 +66,10 @@ python3 scripts/hkex_second_pass.py \
 | TTM净利同比 | 与去年同期 TTM 净利的增长率 |
 | TTMROE / TTMROIC | TTM 股东权益回报率 / 投入资本回报率 |
 | TTM经营/投资/融资现金流 | 最近四季度各类现金流 |
-| 净现金 | 总现金 - 短期借款 - 长期借款（金融股为空） |
-| TTMFCF | max(OCF+资本支出, OCF+投资现金流) |
+| 净现金 | 总现金 - 短期借款 - 长期借款（三项全空→空，金融股→空） |
+| TTMFCF | 优先 OCF+资本支出，不可用时退回 OCF+投资现金流 |
 | 股东收益率 | TTMFCF ÷ (总市值 - 净现金) × 100%（分母为企业价值） |
-| 股东回报分配率 | 预期25股东回报 ÷ TTM归母净利润 × 100% |
+| 股东回报分配率 | 预期25股东回报 ÷ TTM归母净利润 × 100%（负值→0） |
 | 低估排序分 | 金融股按PE升序，非金融股按股东收益率降序 |
 | 成长排序分 | 按TTM净利同比降序（金融/非金融各自排名，None不参与） |
 | 质量排序分 | 金融股按TTMROE，非金融股按TTMROIC降序 |

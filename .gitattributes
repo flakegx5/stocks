@@ -1,4 +1,0 @@
-# data.js 是构建产物，合并时始终以 main（目标分支）为准
-# feature 分支可本地生成用于验证，但不参与 merge
-# merge 到 main 后需手动重建：python3 build_html.py && git add data.js && git commit
-data.js merge=ours

@@ -41,11 +41,12 @@ def compute_rankings(phase1_list):
 
     growth = [None] * count
     for queue in (financial, non_financial):
-        items = [(i, 0.0 if phase1_list[i]["ttm_yoy"] is None else phase1_list[i]["ttm_yoy"]) for i in queue]
+        items = [(i, phase1_list[i]["ttm_yoy"]) for i in queue if phase1_list[i]["ttm_yoy"] is not None]
         items.sort(key=lambda item: item[1], reverse=True)
         ranks = competition_rank(items)
         for idx in queue:
-            growth[idx] = ranks.get(idx)
+            if phase1_list[idx]["ttm_yoy"] is not None:
+                growth[idx] = ranks.get(idx)
 
     quality = [None] * count
     financial_quality = [(i, phase1_list[i]["ttmroe"]) for i in financial if phase1_list[i]["ttmroe"] is not None]

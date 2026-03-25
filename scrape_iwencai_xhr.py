@@ -328,7 +328,8 @@ def do_scrape(debug=False):
         print("🚀 启动无头浏览器（带 session）...")
         browser = p.chromium.launch(
             headless=True,
-            args=["--disable-blink-features=AutomationControlled"],
+            args=["--disable-blink-features=AutomationControlled",
+                  "--no-proxy-server"],
         )
         context = browser.new_context(
             viewport={"width": 1440, "height": 900},

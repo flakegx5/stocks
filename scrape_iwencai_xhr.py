@@ -400,10 +400,14 @@ def do_scrape(debug=False):
                 print("  ✅ 已到最后一页，停止")
                 break
             try:
+                # 关闭可能弹出的登录遮罩层
+                pw_page.evaluate("""() => {
+                    document.querySelectorAll('.login-mask, .login-page, .login-dialog, .login-modal').forEach(el => el.remove());
+                }""")
                 with pw_page.expect_response(lambda r: _is_data_url(r.url), timeout=15_000):
                     next_button = _next_button_locator(pw_page)
                     next_button.scroll_into_view_if_needed()
-                    next_button.click(timeout=5_000)
+                    next_button.click(force=True, timeout=5_000)
             except Exception as e:
                 print(f"  ⚠️  第 {pg+1} 页点击/等待失败: {e}")
                 break

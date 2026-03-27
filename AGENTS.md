@@ -14,15 +14,6 @@ git commit -m "简要描述本次改动"
 git push
 ```
 
-**main 分支合并后**（如有新数据需要重建 data.js）：
-
-```bash
-python3 build_html.py
-git add data.js
-git commit -m "rebuild: 合并后重建 data.js"
-git push
-```
-
 ---
 
 ## 项目路径
@@ -38,20 +29,6 @@ hk_stocks_data_new.json  →  build_html.py  →  data.js（只含原始数据 +
                                                   ↓
                                           dashboard JS（渲染）
 ```
-
-### 文件归属（各分支只改自己的文件，互不冲突）
-
-| 文件 | 归属分支 | 说明 |
-|------|---------|------|
-| `scrape_iwencai_xhr.py` | data-pipeline | 数据抓取 |
-| `hk_stocks_data_new.json` | data-pipeline | 原始数据 |
-| `assets/scripts/compute.js` | **indicators** | **浏览器端计算引擎（TTM/排名/衍生指标）** |
-| `validate.js` | indicators | Node.js 验证工具（规则迭代影响分析） |
-| `stocks_build/*.py` | indicators | Python 配置（列定义、报期列表等，不含计算逻辑） |
-| `index.html` | frontend | 页面结构 |
-| `assets/styles/dashboard.css` | frontend | 样式 |
-| `assets/scripts/dashboard/*.js` | frontend | 前端渲染逻辑 |
-| `data.js` | 构建产物 | 由 build_html.py 生成，computed 列为 null |
 
 ### 核心文件
 
@@ -166,7 +143,7 @@ N_PERIODS       = len(PERIOD_DATES)              # 当前 = 12
 ```
 
 ### 修改计算逻辑时
-- 修改 `assets/scripts/compute.js`（indicators 分支）
+- 修改 `assets/scripts/compute.js`
 - 如需新增/删除计算列，同步修改 `stocks_build/config.py` 的 `COMPUTED_COL_DEFS`
 - 本地验证：浏览器打开 index.html，F12 查看 console 确认 compute.js 无报错
 

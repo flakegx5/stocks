@@ -65,7 +65,7 @@ python3 build_html.py
 
 补充说明：非金融股按统一规则计算排名；若缺少对应计算所需字段，则该维度排名或综合排名显示为空。
 
-## 架构（2026-03-19 重构后）
+## 架构
 
 ```
 scrape_iwencai_xhr.py   →   hk_stocks_data_new.json   →   build_html.py

@@ -78,19 +78,6 @@ def filter_source_rows(rows):
     ]
 
 
-def inject_market(obj, market_data, market_keys):
-    code = clean_code(obj.get("股票代码", ""))
-    snapshot = market_data.get(code)
-    if not snapshot:
-        return
-    if snapshot.get("price") is not None:
-        obj[market_keys["price"]] = snapshot["price"]
-    if snapshot.get("change_pct") is not None:
-        obj[market_keys["chg"]] = snapshot["change_pct"]
-    if snapshot.get("mkt_cap") is not None:
-        obj[market_keys["mktcap"]] = snapshot["mkt_cap"]
-
-
 def compute_phase1(obj, market_keys):
     profit_metric = "归属于母公司所有者的净利润"
     cash_metric = "总现金"

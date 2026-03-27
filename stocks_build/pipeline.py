@@ -15,7 +15,7 @@ from .config import (
     PERIOD_DATES,
     PERIOD_METRICS,
 )
-from .metrics import build_market_keys, clean_code, filter_source_rows, inject_market
+from .metrics import build_market_keys, clean_code, filter_source_rows
 
 
 def load_json(path):
@@ -158,35 +158,10 @@ def write_outputs(base_dir, bundle):
 
 def run_build(base_dir):
     financial_json_path = os.path.join(base_dir, "hk_stocks_data_new.json")
-    market_json_path = os.path.join(base_dir, "hk_stocks_market.json")
     raw = load_json(financial_json_path)
     source_rows = filter_source_rows(raw.get("rows", []))
     market_keys = build_market_keys(raw.get("rows", []))
     print(f"📊 MKT keys: MKTCAP={market_keys['mktcap']!r}  SHARES={market_keys['shares']!r}")
-
-    market_data = {}
-    market_updated_at = None
-    if os.path.exists(market_json_path):
-        try:
-            market_payload = load_json(market_json_path)
-            market_data = market_payload.get("data", {})
-            market_updated_at = market_payload.get("updated_at", "?")
-            print(f"市场数据已加载: {len(market_data)} 只, 更新于 {market_updated_at}")
-        except Exception as exc:
-            print(f"警告: 市场数据加载失败 ({exc}), 使用 iwencai 原始数据")
-
-    financial_mtime = os.path.getmtime(financial_json_path)
-    market_mtime = os.path.getmtime(market_json_path) if os.path.exists(market_json_path) else 0.0
-    use_market_injection = bool(market_data) and (market_mtime > financial_mtime)
-    if use_market_injection:
-        injected = sum(1 for obj in source_rows if market_data.get(clean_code(obj.get("股票代码", ""))))
-        for obj in source_rows:
-            inject_market(obj, market_data, market_keys)
-        print(f"AKShare 注入: {injected}/{len(source_rows)} 只股票已更新价格/市值（市场数据: {market_updated_at}）")
-    elif market_data:
-        print("iwencai 数据更新（mtime 较新），跳过 AKShare 注入，以 iwencai 原始值为准")
-    else:
-        print("市场数据未加载，使用 iwencai 原始数据（运行 update_market.py 可获取最新行情）")
 
     all_cols = build_all_columns(market_keys)
     rows = build_rows(source_rows, all_cols, market_keys)
